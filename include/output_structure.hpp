@@ -41,8 +41,21 @@ class COutput {
 	protected:
 
 	private:
+    // Number of nodes in x-dimension.
+    unsigned long nxNode;
+    // Number of nodes in y-dimension.
+    unsigned long nyNode;
 		// Total number of nodes.
 		unsigned long nNode;
+    // Number of cells in x-direction.
+    unsigned long nxCell;
+    // Number of cells in y-direction.
+    unsigned long nyCell;
+    // Total number of cells.
+    unsigned long nCell;
+
+    // Local Connectivity array.
+    as3vector2d<unsigned long> ConnLocal;
 
 		// Output VTK Filename.
 		const char *OutputVTKFilename;

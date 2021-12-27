@@ -30,6 +30,8 @@ class CSolver {
     // Must be overriden by a derived class.
     virtual as3double ComputeTimeStep(void) = 0;
 
+    // Getter: returns DataSolution.
+    as3data1d<as3double> &GetDataSolution(void)          {return DataSolution;}
 
 	protected:
     // Total number of nodes.

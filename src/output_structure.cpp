@@ -12,8 +12,22 @@ COutput::COutput
 	* Constructor, used to initiate COutput class.
 	*/
 {
-	// Total number of nodes.
+  // Number of nodes in x-dimension.
+  nxNode = geometry_container->GetnxNode();
+  // Number of nodes in y-dimension.
+  nyNode = geometry_container->GetnyNode();
+  // Total number of nodes.
   nNode = geometry_container->GetnNode();
+
+  // Number of cells in x-direction.
+  nxCell = nxNode-1;
+  // Number of cells in y-direction.
+  nyCell = nyNode-1;
+  // Total number of cells.
+  nCell = nxCell*nyCell;
+
+  // Local connectivity mapper according to counter-clockwise convention.
+  ConnLocal = { {0, 0}, {1, 0}, {1, 1}, {0, 1} };
 
 	// Extract output VTK filename.
 	OutputVTKFilename = config_container->GetOutputVTKFilename();
@@ -133,154 +147,129 @@ void COutput::WriteFileVTK
 	// Display progress.
 	std::cout << "  writing grid data....... ";
 
-	// unsigned short idxElem   = 0;
-	// unsigned long  nDOFsGrid = 0;
-	// unsigned short nZone     = geometry_container->GetnZone();
-  //
-  //
-	// // Iterate on each zone.
-	// for(unsigned short iZone=0; iZone<nZone; iZone++){
-  //
-	// 	const CGeometryZone *gridZone = geometry_container->GetGeometryZone(iZone);
-  //
-	// 	unsigned short nPoly     = gridZone->GetnPolySol();
-	// 	unsigned short nSubElem  = nPoly*nPoly;
-	// 	unsigned long  nElem     = gridZone->GetnElem();
-  //
-	// 	for(unsigned long iElem=0; iElem<nElem; iElem++){
-	// 		const CGeometryElement *surfElem = gridZone->GetGeometryElem(iElem);
-	// 		as3data1d<as3double> elemNode = surfElem->GetCoordSolDOFs();
-  //
-	// 		idxElem = 0;
-	// 		for(unsigned short iSubElem=0; iSubElem<nSubElem; iSubElem++){
-	// 			for(unsigned short iNode=0; iNode<4; iNode++){
-	// 				for(unsigned short iDim=0; iDim<nDim; iDim++)
-	// 					Paraview_File << std::scientific << elemNode[iDim][ConnLocal[iZone][idxElem]] << "\t";
-	// 				// accout for z-coordinate
-	// 				Paraview_File << std::scientific << "0.0" << "\t";
-	// 				idxElem++;
-	// 				nDOFsGrid++;
-	// 			}
-	// 			Paraview_File << "\n";
-	// 		}
-	// 	}
-	// }
-  //
-  //
-	// // Register cell indices.
-	// unsigned long nSubElemP1Global 		 = nPoints/N_POINTS_QUADRILATERAL;
-	// unsigned long nGlobal_Elem_Storage = nSubElemP1Global*(N_POINTS_QUADRILATERAL+1);
-	// Paraview_File << "\nCELLS " << nSubElemP1Global << "\t" << nGlobal_Elem_Storage << "\n";
-  //
-	// unsigned long idxElemGlobal = 0;
-	// for(unsigned short iZone=0; iZone<nZone; iZone++){
-	// 	const CGeometryZone *gridZone = geometry_container->GetGeometryZone(iZone);
-	// 	unsigned long nElem = gridZone->GetnElem();
-  //
-	// 	unsigned short nPoly    = gridZone->GetnPolySol();
-	// 	unsigned short nSubElem = nPoly*nPoly;
-  //
-	// 	short idxLocal;
-	// 	for(unsigned long iElem=0; iElem<nElem; iElem++){
-	// 		idxLocal = 0;
-	// 		for(unsigned short iSubElem=0; iSubElem<nSubElem; iSubElem++){
-	// 			Paraview_File << N_POINTS_QUADRILATERAL << "\t";
-	// 			for(unsigned short iNode=0; iNode<nNodeP1; iNode++){
-	// 				Paraview_File << idxElemGlobal+idxLocal << "\t";
-	// 				idxLocal++;
-	// 			}
-	// 			Paraview_File << "\n";
-	// 		}
-	// 		idxElemGlobal += idxLocal;
-	// 	}
-	// }
-  //
-  //
-	// // Cell registration.
-	// Paraview_File << "\nCELL_TYPES " << nSubElemP1Global << "\n";
-	// for(unsigned short iZone=0; iZone<nZone; iZone++){
-	// 	const CGeometryZone *gridZone = geometry_container->GetGeometryZone(iZone);
-  //
-	// 	unsigned long  nElem 		= gridZone->GetnElem();
-	// 	unsigned short nPoly 	  = gridZone->GetnPolySol();
-	// 	unsigned short nSubElem = nPoly*nPoly;
-  //
-	// 	for(unsigned long iElem=0; iElem<nElem; iElem++){
-	// 		for(unsigned short iSubElem=0; iSubElem<nSubElem; iSubElem++){
-	// 			Paraview_File << QUADRILATERAL << "\t";
-	// 			Paraview_File << "\n";
-	// 		}
-	// 	}
-	// }
-	// Paraview_File << "\nPOINT_DATA " << nPoints << "\n";
-	// std::cout << "Done." << std::endl;
-  //
-  //
-	// // Register density data.
-	// std::cout << "  writing Density.........";
-	// Paraview_File << "\nSCALARS " << "Density" << " double 1\n";
-	// Paraview_File << "LOOKUP_TABLE default\n";
-	// WriteScalar(config_container,
-	// 						geometry_container,
-	// 						solver_container,
-	// 						Paraview_File,
-	// 						VariableDensity);
-	// std::cout << " Done." << std::endl;
-  //
-	// // Register momentum data.
-	// std::cout << "  writing Momentum........";
-	// Paraview_File << "\nVECTORS " << "Momentum" << " double\n";
-	// WriteVector(config_container,
-	// 						geometry_container,
-	// 						solver_container,
-	// 						Paraview_File,
-	// 						VariableMomentum);
-	// std::cout << " Done." << std::endl;
-  //
-	// // Register energy data.
-	// std::cout << "  writing Energy..........";
-	// Paraview_File << "\nSCALARS " << "Energy" << " double 1\n";
-	// Paraview_File << "LOOKUP_TABLE default\n";
-	// WriteScalar(config_container,
-	// 						geometry_container,
-	// 						solver_container,
-	// 						Paraview_File,
-	// 						VariableEnergy);
-	// std::cout << " Done." << std::endl;
-  //
-	// // Register pressure data.
-	// std::cout << "  writing Pressure........";
-	// Paraview_File << "\nSCALARS " << "Pressure" << " double 1\n";
-	// Paraview_File << "LOOKUP_TABLE default\n";
-	// WriteScalar(config_container,
-	// 						geometry_container,
-	// 						solver_container,
-	// 						Paraview_File,
-	// 						VariablePressure);
-	// std::cout << " Done." << std::endl;
-  //
-  // // Register temperature data.
-	// std::cout << "  writing Temperature.....";
-	// Paraview_File << "\nSCALARS " << "Temperature" << " double 1\n";
-	// Paraview_File << "LOOKUP_TABLE default\n";
-	// WriteScalar(config_container,
-	// 						geometry_container,
-	// 						solver_container,
-	// 						Paraview_File,
-	// 						VariableTemperature);
-	// std::cout << " Done." << std::endl;
-  //
-  // // Register Mach number data.
-	// std::cout << "  writing Mach............";
-	// Paraview_File << "\nSCALARS " << "Mach" << " double 1\n";
-	// Paraview_File << "LOOKUP_TABLE default\n";
-	// WriteScalar(config_container,
-	// 						geometry_container,
-	// 						solver_container,
-	// 						Paraview_File,
-	// 						VariableMachNumber);
-	// std::cout << " Done." << std::endl;
-  //
+  // Extract coordinates.
+  auto* xcoord = geometry_container->GetGridCoordinate(0);
+  auto* ycoord = geometry_container->GetGridCoordinate(1);
+
+  // Loop over all cells.
+  for(unsigned long j=0; j<nyCell; j++){
+    for(unsigned long i=0; i<nxCell; i++){
+
+      // Loop over all nodes in each cell.
+      for(unsigned short s=0; s<ConnLocal.size(); s++){
+
+        // Shifted indices to form counter-clockwise convention.
+        unsigned long I = i + ConnLocal[s][0];
+        unsigned long J = j + ConnLocal[s][1];
+
+        // Global cell node index.
+        unsigned long k = J*nxNode+I;
+        // Write coordinates.
+        Paraview_File << std::scientific << xcoord[k] << "\t"
+                                         << ycoord[k] << "\t"
+                                         << "0.0"     << "\t";
+      }
+      Paraview_File << "\n";
+    }
+  }
+
+  // Register cell indices.
+  unsigned long nSubElemP1Global 		 = nPoints/N_POINTS_QUADRILATERAL;
+  unsigned long nGlobal_Elem_Storage = nSubElemP1Global*(N_POINTS_QUADRILATERAL+1);
+  Paraview_File << "\nCELLS " << nSubElemP1Global << "\t" << nGlobal_Elem_Storage << "\n";
+
+  // Loop over all cells.
+  unsigned long idxElemGlobal = 0;
+  for(unsigned long i=0; i<nCell; i++){
+    // Register number of points needed in each cell.
+    Paraview_File << N_POINTS_QUADRILATERAL << "\t";
+    // Loop over all nodes in each cell.
+    for(unsigned short j=0; j<ConnLocal.size(); j++){
+        // Register local cell-node index convention.
+        Paraview_File << idxElemGlobal + j << "\t";
+    }
+		Paraview_File << "\n";
+    // Update global index.
+    idxElemGlobal += ConnLocal.size();
+  }
+
+  // Cell registration.
+	Paraview_File << "\nCELL_TYPES " << nSubElemP1Global << "\n";
+  // Loop over all cells.
+  for(unsigned long i=0; i<nCell; i++){
+    // Register number of points needed in each cell.
+    Paraview_File << QUADRILATERAL << "\n";
+  }
+  Paraview_File << "\nPOINT_DATA " << nPoints << "\n";
+  std::cout << "Done." << std::endl;
+
+
+	// Register density data.
+	std::cout << "  writing Density.........";
+	Paraview_File << "\nSCALARS " << "Density" << " double 1\n";
+	Paraview_File << "LOOKUP_TABLE default\n";
+	WriteScalar(config_container,
+							geometry_container,
+							solver_container,
+							Paraview_File,
+							VariableDensity);
+	std::cout << " Done." << std::endl;
+
+
+	// Register momentum data.
+	std::cout << "  writing Momentum........";
+	Paraview_File << "\nVECTORS " << "Momentum" << " double\n";
+	WriteVector(config_container,
+							geometry_container,
+							solver_container,
+							Paraview_File,
+							VariableMomentum);
+	std::cout << " Done." << std::endl;
+
+	// Register energy data.
+	std::cout << "  writing Energy..........";
+	Paraview_File << "\nSCALARS " << "Energy" << " double 1\n";
+	Paraview_File << "LOOKUP_TABLE default\n";
+	WriteScalar(config_container,
+							geometry_container,
+							solver_container,
+							Paraview_File,
+							VariableEnergy);
+	std::cout << " Done." << std::endl;
+
+	// Register pressure data.
+	std::cout << "  writing Pressure........";
+	Paraview_File << "\nSCALARS " << "Pressure" << " double 1\n";
+	Paraview_File << "LOOKUP_TABLE default\n";
+	WriteScalar(config_container,
+							geometry_container,
+							solver_container,
+							Paraview_File,
+							VariablePressure);
+	std::cout << " Done." << std::endl;
+
+  // Register temperature data.
+	std::cout << "  writing Temperature.....";
+	Paraview_File << "\nSCALARS " << "Temperature" << " double 1\n";
+	Paraview_File << "LOOKUP_TABLE default\n";
+	WriteScalar(config_container,
+							geometry_container,
+							solver_container,
+							Paraview_File,
+							VariableTemperature);
+	std::cout << " Done." << std::endl;
+
+  // Register Mach number data.
+	std::cout << "  writing Mach............";
+	Paraview_File << "\nSCALARS " << "Mach" << " double 1\n";
+	Paraview_File << "LOOKUP_TABLE default\n";
+	WriteScalar(config_container,
+							geometry_container,
+							solver_container,
+							Paraview_File,
+							VariableMachNumber);
+	std::cout << " Done." << std::endl;
+  
   // // If a PML zone exists, write its auxiliary variables.
   // if( config_container->GetUsePML() ){
   //
@@ -320,16 +309,16 @@ void COutput::WriteFileVTK
   //     std::cout << " Done." << std::endl;
   //   }
   // }
-  //
-  //
-	// // Close file.
-	// Paraview_File.close();
-  //
-	// // Report: all is complete!
-	// std::cout << "Done." << std::endl;
-  //
-	// // Update file counter.
-	// FileNumberVTK++;
+
+
+	// Close file.
+	Paraview_File.close();
+
+	// Report: all is complete!
+	std::cout << "Done." << std::endl;
+
+	// Update file counter.
+	FileNumberVTK++;
 }
 
 
@@ -345,7 +334,31 @@ void COutput::WriteScalar
 	* Function that writes a scalar parameter.
 	*/
 {
+  // Extract solution data.
+  const auto& variables = solver_container->GetDataSolution();
 
+  // Loop over all cells.
+  for(unsigned long j=0; j<nyCell; j++){
+    for(unsigned long i=0; i<nxCell; i++){
+
+      // Loop over all nodes in each cell.
+      for(unsigned short s=0; s<ConnLocal.size(); s++){
+
+        // Shifted indices to form counter-clockwise convention.
+        unsigned long I = i + ConnLocal[s][0];
+        unsigned long J = j + ConnLocal[s][1];
+
+        // Global cell node index.
+        unsigned long k = J*nxNode+I;
+
+        // Compute scalar.
+        auto scalar = Variable->GetValue(variables, k);
+        // Write coordinates.
+        Paraview_File << std::scientific << scalar << "\t";
+      }
+      Paraview_File << "\n";
+    }
+  }
 }
 
 
@@ -361,7 +374,33 @@ void COutput::WriteVector
 	* Function that writes a vector parameter.
 	*/
 {
+  // Extract solution data.
+  const auto& variables = solver_container->GetDataSolution();
 
+  // Loop over all cells.
+  for(unsigned long j=0; j<nyCell; j++){
+    for(unsigned long i=0; i<nxCell; i++){
+
+      // Loop over all nodes in each cell.
+      for(unsigned short s=0; s<ConnLocal.size(); s++){
+
+        // Shifted indices to form counter-clockwise convention.
+        unsigned long I = i + ConnLocal[s][0];
+        unsigned long J = j + ConnLocal[s][1];
+
+        // Global cell node index.
+        unsigned long k = J*nxNode+I;
+
+        // Compute scalar.
+        auto vector = Variable->GetValue(variables, k);
+        // Write coordinates.
+        Paraview_File << std::scientific << vector[0] << "\t"
+                                         << vector[1] << "\t"
+                                         << "0.0"     << "\t";
+      }
+      Paraview_File << "\n";
+    }
+  }
 }
 
 

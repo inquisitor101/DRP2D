@@ -107,41 +107,41 @@ void CEESolver::InitializeSolution
   * Function that initializes the solution.
   */
 {
-  // // Abbreviation.
-  // const as3double ovgm1 = 1.0/GAMMA_MINUS_ONE;
-  //
-  // // Extract grid coordinates.
-  // const as3double *xcoord = geometry_container->GetGridCoordinate(0);
-  // const as3double *ycoord = geometry_container->GetGridCoordinate(1);
-  //
-  // // Temporary storage for nodal IC.
-  // as3vector1d<as3double> Q(nVar);
-  //
-  // // Loop over all the nodes.
-  // for(unsigned long l=0; l<nNode; l++){
-  //
-  //   // Explicitly extract current coordinate.
-  //   const as3double x = xcoord[l];
-  //   const as3double y = ycoord[l];
-  //
-  //   // Extract the current IC in terms of primitive variables.
-  //   Q = initial_container->SetInitialConditionPrimitive(x, y, time);
-  //
-  //   // Explicitly extract primitive data.
-  //   const as3double rho = Q[0];
-  //   const as3double u   = Q[1];
-  //   const as3double v   = Q[2];
-  //   const as3double p   = Q[3];
-  //
-  //   // Compute the energy.
-  //   const as3double rhoE = p*ovgm1 + 0.5*rho*( u*u + v*v );
-  //
-  //   // Assemble working solution in conervative form.
-  //   DataSolution[0][l] = rho;
-  //   DataSolution[1][l] = rho*u;
-  //   DataSolution[2][l] = rho*v;
-  //   DataSolution[3][l] = rhoE;
-  // }
+  // Abbreviation.
+  const as3double ovgm1 = 1.0/GAMMA_MINUS_ONE;
+
+  // Extract grid coordinates.
+  const as3double *xcoord = geometry_container->GetGridCoordinate(0);
+  const as3double *ycoord = geometry_container->GetGridCoordinate(1);
+
+  // Temporary storage for nodal IC.
+  as3vector1d<as3double> Q(nVar);
+
+  // Loop over all the nodes.
+  for(unsigned long l=0; l<nNode; l++){
+
+    // Explicitly extract current coordinate.
+    const as3double x = xcoord[l];
+    const as3double y = ycoord[l];
+
+    // Extract the current IC in terms of primitive variables.
+    Q = initial_container->SetInitialConditionPrimitive(x, y, time);
+
+    // Explicitly extract primitive data.
+    const as3double rho = Q[0];
+    const as3double u   = Q[1];
+    const as3double v   = Q[2];
+    const as3double p   = Q[3];
+
+    // Compute the energy.
+    const as3double rhoE = p*ovgm1 + 0.5*rho*( u*u + v*v );
+
+    // Assemble working solution in conervative form.
+    DataSolution[0][l] = rho;
+    DataSolution[1][l] = rho*u;
+    DataSolution[2][l] = rho*v;
+    DataSolution[3][l] = rhoE;
+  }
 }
 
 
