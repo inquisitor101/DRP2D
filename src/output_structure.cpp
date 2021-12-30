@@ -137,9 +137,6 @@ void COutput::WriteFileVTK
 	Paraview_File << "ASCII\n";
 	Paraview_File << "DATASET UNSTRUCTURED_GRID\n";
 
-	// Initialize nPoly=1 element (index) size.
-	unsigned short nNodeP1 = N_POINTS_QUADRILATERAL;
-
 	// Extract total number of points assuming nPoly=1 cells.
 	unsigned long nPoints = geometry_container->GetnPointCellP1();
 	Paraview_File << "POINTS " << nPoints << " double\n";
@@ -269,7 +266,7 @@ void COutput::WriteFileVTK
 							Paraview_File,
 							VariableMachNumber);
 	std::cout << " Done." << std::endl;
-  
+
   // // If a PML zone exists, write its auxiliary variables.
   // if( config_container->GetUsePML() ){
   //

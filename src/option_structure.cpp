@@ -2,6 +2,66 @@
 
 
 
+std::string DisplayBoundaryType
+(
+  unsigned short iBoundary
+)
+ /*
+  * Function that displays the string name of the input boundary type.
+  */
+{
+  std::string message;
+  switch (iBoundary){
+    case(BC_INTERFACE):     message = "INTERFACE......"; break;
+    case(BC_SYMMETRY):      message = "SYMMETRY......."; break;
+    case(BC_CBC_OUTLET):    message = "CBC OUTLET....."; break;
+    case(BC_CBC_INLET):     message = "CBC INLET......"; break;
+    case(BC_STATIC_INLET):  message = "STATIC INLET..."; break;
+    case(BC_STATIC_OUTLET): message = "STATIC OUTLET.."; break;
+    case(BC_TOTAL_INLET):   message = "TOTAL INLET...,"; break;
+    default: std::exit(EXIT_FAILURE);
+  }
+  return message;
+}
+
+
+std::string DisplaySolverType
+(
+  unsigned short iSolver
+)
+ /*
+  * Function that displays the string name of the input solver type.
+  */
+{
+  std::string message;
+  switch (iSolver){
+    case(SOLVER_EE):     message = "EE......."; break;
+    default: std::exit(EXIT_FAILURE);
+  }
+  return message;
+}
+
+
+std::string DisplayBoundarySide
+(
+  unsigned short iBoundary
+)
+ /*
+  * Function that displays the boundary name of the input ID.
+  */
+{
+  std::string message;
+  switch(iBoundary){
+    case(IDX_SOUTH): message = "SOUTH..."; break;
+    case(IDX_NORTH): message = "NORTH..."; break;
+    case(IDX_WEST):  message = "WEST...."; break;
+    case(IDX_EAST):  message = "EAST...."; break;
+    default: std::exit(EXIT_FAILURE);
+  }
+  return message;
+}
+
+
 void AddBoolOption
 (
   std::ifstream  &inputFile,

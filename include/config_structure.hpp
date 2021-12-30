@@ -15,49 +15,63 @@ class CConfig {
 		~CConfig(void);
 
     // Getter: returns nxNode.
-    unsigned long GetnxNode(void)                            const {return nxNode;}
+    unsigned long GetnxNode(void)                              const {return nxNode;}
     // Getter: returns nyNode.
-    unsigned long GetnyNode(void)                            const {return nyNode;}
+    unsigned long GetnyNode(void)                              const {return nyNode;}
+    // Getter: returns NStencil[iDim].
+    unsigned short GetnnStencil(unsigned short iDim)           const {return NStencil[iDim];}
+    // Getter: returns MStencil[iDim].
+    unsigned short GetmmStencil(unsigned short iDim)           const {return MStencil[iDim];}
     // Getter: returns NxStencil.
-    unsigned short GetnxStencil(void)                        const {return NxStencil;}
+    unsigned short GetnxStencil(void)                          const {return NStencil[0];}
     // Getter: returns MxStencil.
-    unsigned short GetmxStencil(void)                        const {return MxStencil;}
+    unsigned short GetmxStencil(void)                          const {return MStencil[0];}
     // Getter: returns NyStencil.
-    unsigned short GetnyStencil(void)                        const {return NyStencil;}
+    unsigned short GetnyStencil(void)                          const {return NStencil[1];}
     // Getter: returns MyStencil.
-    unsigned short GetmyStencil(void)                        const {return MyStencil;}
+    unsigned short GetmyStencil(void)                          const {return MStencil[1];}
     // Getter: returns SimulationTime[0].
-		as3double GetSimulationStartTime(void)                   const {return SimulationTime[0];}
+		as3double GetSimulationStartTime(void)                     const {return SimulationTime[0];}
 		// Getter: returns SimulationTime[1].
-		as3double GetSimulationFinalTime(void)                   const {return SimulationTime[1];}
+		as3double GetSimulationFinalTime(void)                     const {return SimulationTime[1];}
     // Getter: returns MaxIter.
-    unsigned long GetMaxIter(void)                           const {return MaxIter;}
+    unsigned long GetMaxIter(void)                             const {return MaxIter;}
     // Getter: returns OutputVTKFilename.
-    const char *GetOutputVTKFilename(void)                   const {return OutputVTKFilename.c_str();}
+    const char *GetOutputVTKFilename(void)                     const {return OutputVTKFilename.c_str();}
     // Getter: returns WriteFreq.
-    unsigned long GetWriteFreq(void)                         const {return WriteFreq;}
+    unsigned long GetWriteFreq(void)                           const {return WriteFreq;}
     // Getter: returns OutputFreq.
-    unsigned long GetOutputFreq(void)                        const {return OutputFreq;}
+    unsigned long GetOutputFreq(void)                          const {return OutputFreq;}
     // Getter: returns DomainBound.
-    const as3vector1d<as3double> GetDomainBound(void)        const {return DomainBound;}
+    const as3vector1d<as3double> GetDomainBound(void)          const {return DomainBound;}
     // Getter: returns MachInf.
-    as3double GetMachInf(void)                               const {return MachInf;}
+    as3double GetMachInf(void)                                 const {return MachInf;}
     // Getter: returns FlowAngle.
-    as3double GetFlowAngle(void)                             const {return FlowAngle;}
+    as3double GetFlowAngle(void)                               const {return FlowAngle;}
     // Getter: returns CrossFlow.
-    bool GetCrossFlow(void)                                  const {return CrossFlow;}
+    bool GetCrossFlow(void)                                    const {return CrossFlow;}
     // Getter: returns CenterX0.
-    const as3vector1d<as3double> &GetCenterX0(void)          const {return CenterX0;}
+    const as3vector1d<as3double> &GetCenterX0(void)            const {return CenterX0;}
     // Getter: returns DisturbanceRatio.
-    as3double GetDisturbanceRatio(void)                      const {return DisturbanceRatio;}
+    as3double GetDisturbanceRatio(void)                        const {return DisturbanceRatio;}
     // Getter: returns DisturbanceWidth.
-    as3double GetDisturbanceWidth(void)                      const {return DisturbanceWidth;}
+    as3double GetDisturbanceWidth(void)                        const {return DisturbanceWidth;}
     // Getter: returns TypeSolver.
-    unsigned short GetTypeSolver(void)                       const {return TypeSolver;}
+    unsigned short GetTypeSolver(void)                         const {return TypeSolver;}
     // Getter: returns TypeIC.
-    unsigned short GetTypeIC(void)                           const {return TypeIC;}
+    unsigned short GetTypeIC(void)                             const {return TypeIC;}
     // Getter: returns TypeTemporalScheme.
-    unsigned short GetTypeTemporalScheme(void)               const {return TypeTemporalScheme;}
+    unsigned short GetTypeTemporalScheme(void)                 const {return TypeTemporalScheme;}
+    // Getter: returns TypeExternalBC[iBoundary].
+    unsigned short GetTypeExternalBC(unsigned short iBoundary) const {return TypeExternalBC[iBoundary];}
+    // Getter: returns CFL.
+    as3double GetCFL(void)                                     const {return CFL;}
+    // Getter: returns TimeStep.
+    as3double GetTimeStep(void)                                const {return TimeStep;}
+    // Getter: returns AdaptTime.
+    bool GetAdaptTime(void)                                    const {return AdaptTime;}
+    // Getter: returns TypeStencil[iDim].
+    unsigned short GetTypeStencil(unsigned short iDim)         const {return TypeStencil[iDim];}
 
 	private:
     // Default data parameters.
@@ -84,8 +98,6 @@ class CConfig {
       as3double MachInf = 0.5;
       // Flow angle in degrees (w.r.t. x-direction).
       as3double FlowAngle = 0.0;
-      // Process data.
-      std::string NameTypeProcessData = "PROCESS_NOTHING";
       // Disturbance center.
       as3vector1d<as3double> CenterX0 = { 0.0, 0.0 };
       // Ratio of disturbance w.r.t. background flow.
@@ -107,15 +119,15 @@ class CConfig {
 		// Number of physical nodes in y-direction.
 		unsigned long nyNode;
 
-		// Stencil size in west(left) x-direction.
-		unsigned short NxStencil;
-		// Stencil size in east(right) x-direction.
-		unsigned short MxStencil;
+    // Stencil size in backward-direction, w.r.t. grid orientation.
+    unsigned short NStencil[nDim];
+    // Stencil size in forward-direction, w.r.t. grid orientation.
+    unsigned short MStencil[nDim];
 
-		// Stencil size in south(bottom) y-direction.
-		unsigned short NyStencil;
-		// Stencil size in north(top) y-direction.
-		unsigned short MyStencil;
+    // Type of stencils used in eaech direction, string name.
+    as3vector1d<std::string> NameTypeStencil;
+    // Type of stencil used in x-direction.
+    as3vector1d<unsigned short> TypeStencil;
 
     // Domain bounds (physical domain).
     // Convention: (WEST, EAST, SOUTH, NORTH).
@@ -197,6 +209,8 @@ class CConfig {
     void MapTypeIC(void);
     // Function that maps TypeExternalBC from string to enum.
     void MapTypeExternalBC(void);
+    // Function that maps TypeStencil from string to enum.
+    void MapTypeStencil(void);
 
 
     // Function that reads grid options.
@@ -211,5 +225,7 @@ class CConfig {
   	bool ReadICOptions(const char *configFile);
     // Function that reads flow characteristics options.
     bool ReadFlowOptions(const char *configFile);
+		// Function that reads solver options.
+		bool ReadSolverOptions(const char *configFile);
 
 };

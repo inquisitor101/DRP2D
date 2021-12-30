@@ -9,7 +9,8 @@
 #include <cmath>
 #include <fstream>
 #include <iomanip>
-#include <eigen/Eigen/Dense>
+#include <omp.h>
+// #include <eigen/Eigen/Dense>
 
 // Include file for runtime NaN catching.
 #ifdef ENABLE_NAN_CHECK
@@ -183,8 +184,32 @@ enum BUFFER_LAYER_TYPE {
 // Enumerated type of boundary condition.
 enum BOUNDARY_CONDITION_TYPE {
 	BC_UNKNOWN           = 99, // unknown type of BC.
-	BC_INTERFACE         = 0   // interface/periodic boundary.
+	BC_INTERFACE         = 0,  // interface/periodic boundary.
+	BC_SYMMETRY          = 1,  // inviscid/slip wall.
+  BC_CBC_OUTLET        = 2,  // outlet CBC.
+  BC_CBC_INLET         = 3,  // inlet CBC.
+  BC_STATIC_INLET      = 4,  // static-condition inlet.
+  BC_TOTAL_INLET       = 5,  // total-conditions inlet.
+  BC_STATIC_OUTLET     = 6,  // static-condition subsonic outlet.
+  BC_SUPERSONIC_OUTLET = 7,  // supersonic outlet.
+  BC_SUPERSONIC_INLET  = 8   // supersonic inlet.
 };
+
+// Enumerated type of finite-difference first-order stencils.
+enum STENCIL_TYPE_FIRST_DERIVATIVE {
+  STENCIL_UNKNOWN  = 99, // unknown type of stencil.
+  STENCIL_DRP_M3N3 = 0,  // central 7-stencil DRP scheme with M=3, N=3.
+  STENCIL_DRP_M2N4 = 1   // upwinded 7-stencil DRP scheme with M=2, N=4.
+};
+
+
+
+// Function used for printing the side of the input boundary.
+std::string DisplayBoundarySide(unsigned short iBoundary);
+// Function used for printing the type of solver.
+std::string DisplaySolverType(unsigned short iSolver);
+// Function used for printing the type of BC.
+std::string DisplayBoundaryType(unsigned short iBoundary);
 
 
 // Function that removes blanks from a string.

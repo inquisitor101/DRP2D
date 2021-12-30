@@ -466,6 +466,57 @@ void CDriver::Temporal_Preprocessing
 }
 
 
+void CDriver::MonitorOutput
+(
+ unsigned long           iIter,
+ as3double               time,
+ as3double               dt,
+ as3vector1d<as3double> &MonitoringData,
+ bool                    MonitorData = true
+)
+ /*
+	* Function that outputs the header of the information being displayed.
+	*/
+{
+	// Number of output reports for monitoring progress.
+	unsigned long nOutput = std::max(1ul, MaxTimeIter/100);
+	// Compute number of max digits needed for output.
+	unsigned long nDigits = std::to_string(MaxTimeIter).size();
+  // Monitoring output frequency.
+  unsigned long OutputFreq = config_container->GetOutputFreq();
+
+	// Display header.
+	if( iIter%nOutput == 0 ){
+		std::cout << "**********************************************"
+							<< "**********************************************" << std::endl;
+		std::cout << " Iteration\tPhysical Time \t Time step \t Max(Mach) \t Res[RMS(rho)]" << std::endl;
+		std::cout << "**********************************************"
+							<< "**********************************************" << std::endl;
+	}
+
+	// Display data in this iteration.
+	if( MonitorData && (iIter%OutputFreq==0) ){
+
+    // Extract the maximum Mach number.
+    const as3double Mmax = MonitoringData[0];
+
+		// Display progress.
+		std::cout << std::scientific << "   "
+							<< std::setw(nDigits) << iIter
+							<< " \t "  << time
+							<< " \t "  << dt
+              << " \t "  << Mmax
+							<< " \t "  << "N/A" << std::endl;
+	}
+
+
+  // Check for floating-point errors at run-time.
+#ifdef ENABLE_NAN_CHECK
+    CheckFloatingError();
+#endif
+}
+
+
 void CDriver::StartSolver
 (
  void
@@ -475,7 +526,8 @@ void CDriver::StartSolver
 	*/
 {
 	// Gauge start time.
-	as3double startTime = as3double(clock())/as3double(CLOCKS_PER_SEC);
+	// as3double startTime = as3double(clock())/as3double(CLOCKS_PER_SEC);
+  as3double startTime = omp_get_wtime();
 
 	// Run a preprocessing step to initialize the solution and condition the data
 	// in case there need be. Note, this in only executed once and before marching
@@ -486,7 +538,8 @@ void CDriver::StartSolver
 	Run();
 
 	// Gauge end time used by the solver.
-	as3double stopTime = as3double(clock())/as3double(CLOCKS_PER_SEC);
+	// as3double stopTime = as3double(clock())/as3double(CLOCKS_PER_SEC);
+  as3double stopTime = omp_get_wtime();
 
 	// Lapse time used by the entire solver.
 	as3double lapsedTime = stopTime - startTime;
@@ -536,129 +589,73 @@ void CDriver::Run
 	* Function that runs the entire solver.
 	*/
 {
-	// // Report output.
-	// std::cout << "----------------------------------------------"
-	// 						 "----------------------------------------------\n";
-	// for(unsigned short iZone=0; iZone<nZone; iZone++)
-	// 	switch( config_container->GetTypeSolver(iZone) ){
-	// 		case(SOLVER_EE):
-  //       std::cout << "Beginning EE Solver in iZone(" << iZone << "): "
-  //                 << DisplayTypeZone(config_container->GetTypeZone(iZone))
-  //                 << std::endl;
-  //     break;
-	// 	}
-	// std::cout << std::endl;
-  //
-  // // Output writing frequency.
-  // const unsigned long WriteFreq  = config_container->GetWriteFreq();
-  // // Filtering frequency.
-  // const unsigned long FilterFreq = (unsigned long) config_container->GetFilterCharacteristics()[0];
-  // // Sample zone writing frequency.
-  // const unsigned long WriteFreqZone = config_container->GetWriteFreqZoneData();
-  //
-  // // Monitoring data.
-  // // Thus far, use only [0]: max(Mach).
-  // as3vector1d<as3double> MonitoringData(1);
-  //
-	// // Estimate time step needed.
-	// as3double dt = ComputeTimeStep();
-  //
-	// // Current time.
-	// as3double SimTime = SimTimeStart;
-	// // Current iteration.
-	// unsigned long IterCount = 0;
-  // // Marker to check if final time step is written or not.
-  // bool FinalStep = false;
-  //
-  //
-  // // Check if there needs to be any sampling of entire zone data.
-  // if( config_container->GetSampleZoneData() )
-  //   output_container->WriteZoneDataToFile(config_container,
-  //                                         geometry_container,
-  //                                         solver_container,
-  //                                         SimTime);
-  //
-	// // Display header for output format.
-	// MonitorOutput(IterCount, SimTime, dt, MonitoringData, false);
-  //
-	// // March in time, until target time is reached.
-	// while( (SimTime < SimTimeFinal) && (IterCount < MaxTimeIter) ){
-  //
-	// 	// Execute a single temporal update.
-	// 	temporal_container->TimeMarch(config_container,
-	// 																geometry_container,
-	// 																iteration_container,
-	// 																solver_container,
-	// 																element_container,
-	// 																spatial_container,
-  //                                 initial_container,
-	// 																SimTime, dt,
-  //                                 MonitoringData);
-  //
-	// 	// Update (physical) time.
-	// 	SimTime += dt;
-  //
-	// 	// Update iteration count.
-	// 	IterCount++;
-  //
-  //   // Check if there needs be any filtering done as a processing step.
-  //   if( IterCount%FilterFreq == 0 )
-  //     for(unsigned short iZone=0; iZone<nZone; iZone++)
-  //       if( config_container->GetTypeFilterSolution(iZone) != NO_FILTER )
-  //         process_container[iZone]->FilterSolution(config_container,
-  //                                                  geometry_container,
-  //                                                  element_container[iZone],
-  //                                                  solver_container[iZone],
-  //                                                  spatial_container[iZone]);
-  //
-  //   // Check if there needs to be any processing done. For now, limit the
-  //   // processing to only the main physical zone.
-  //   if( config_container->GetTypeProcessData() != PROCESS_NOTHING )
-  //     process_container[ZONE_MAIN]->ProcessData(config_container,
-  //                                               geometry_container,
-  //                                               element_container[ZONE_MAIN],
-  //                                               spatial_container[ZONE_MAIN],
-  //                                               solver_container[ZONE_MAIN],
-  //                                               initial_container[ZONE_MAIN],
-  //                                               SimTime);
-  //
-  //   // Check if there needs to be any sampling of entire zone data.
-  //   if( config_container->GetSampleZoneData() && (IterCount%WriteFreqZone) == 0 )
-  //     output_container->WriteZoneDataToFile(config_container,
-  //                                           geometry_container,
-  //                                           solver_container,
-  //                                           SimTime);
-  //
-  //   // Check if this is the final time step.
-  //   if( (SimTime >= SimTimeFinal) || (IterCount >= MaxTimeIter) )
-  //     FinalStep = true;
-  //
-  //   // Process data every OutputFreq iterations.
-  //   if( IterCount%WriteFreq == 0 || FinalStep ){
-  //
-  //     // Write output VTK for initial condition.
-  //     output_container->WriteFileVTK(config_container,
-  //   																 geometry_container,
-  //   																 solver_container);
-  //
-  //     // Write solution data to file.
-  //     output_container->WriteSolutionToFile(config_container,
-  //                                           geometry_container,
-  //                                           element_container,
-  //                                           solver_container,
-  //                                           SimTime);
-  //
-  //     // If this is an adaptive time-stepping, then compute new time-step.
-  //     if( config_container->GetAdaptTime() ) dt = ComputeTimeStep();
-  //   }
-  //
-	// 	// Display output for progress monitoring.
-	// 	MonitorOutput(IterCount, SimTime, dt, MonitoringData);
-	// }
-  //
-  // // Write processed data to file, if specified.
-  // if( config_container->GetTypeProcessData() != PROCESS_NOTHING )
-  //   process_container[ZONE_MAIN]->WriteProcessedData(config_container,
-  //                                                    geometry_container,
-  //                                                    output_container);
+	// Report output.
+	std::cout << "----------------------------------------------"
+							 "----------------------------------------------\n";
+	switch( config_container->GetTypeSolver() ){
+		case(SOLVER_EE): std::cout << "Beginning EE Solver." << std::endl; break;
+	}
+	std::cout << std::endl;
+
+  // Output writing frequency.
+  const unsigned long WriteFreq = config_container->GetWriteFreq();
+
+  // Monitoring data.
+  // Thus far, use only [0]: max(Mach).
+  as3vector1d<as3double> MonitoringData(1);
+
+	// Estimate time step needed.
+	as3double dt = solver_container->ComputeTimeStep(config_container, geometry_container);
+
+	// Current time.
+	as3double SimTime = SimTimeStart;
+	// Current iteration.
+	unsigned long IterCount = 0;
+  // Marker to check if final time step is written or not.
+  bool FinalStep = false;
+
+
+	// Display header for output format.
+	MonitorOutput(IterCount, SimTime, dt, MonitoringData, false);
+
+	// March in time, until target time is reached.
+	while( (SimTime < SimTimeFinal) && (IterCount < MaxTimeIter) ){
+
+		// Execute a single temporal update.
+		temporal_container->TimeMarch(config_container,
+																	geometry_container,
+																	iteration_container,
+																	solver_container,
+																	spatial_container,
+                                  initial_container,
+																	SimTime, dt,
+                                  MonitoringData);
+
+		// Update (physical) time.
+		SimTime += dt;
+
+		// Update iteration count.
+		IterCount++;
+
+
+    // Check if this is the final time step.
+    if( (SimTime >= SimTimeFinal) || (IterCount >= MaxTimeIter) )
+      FinalStep = true;
+
+    // Process data every OutputFreq iterations.
+    if( IterCount%WriteFreq == 0 || FinalStep ){
+
+      // Write output VTK for initial condition.
+      output_container->WriteFileVTK(config_container,
+    																 geometry_container,
+    																 solver_container);
+
+      // If this is an adaptive time-stepping, then compute new time-step.
+      if( config_container->GetAdaptTime() )
+        dt = solver_container->ComputeTimeStep(config_container, geometry_container);
+    }
+
+		// Display output for progress monitoring.
+		MonitorOutput(IterCount, SimTime, dt, MonitoringData);
+	}
 }

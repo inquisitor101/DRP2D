@@ -55,6 +55,11 @@ CConfig::CConfig
 		Terminate("CConfig::CConfig", __FILE__, __LINE__, message.str());
 	}
 
+  // Extract solver options.
+  if( !ReadSolverOptions(configFile) ){
+		message << "Failed to read solver options from " << configFile;
+		Terminate("CConfig::CConfig", __FILE__, __LINE__, message.str());
+	}
 
 	// Close file.
   inputFile.close();
@@ -70,6 +75,46 @@ CConfig::~CConfig
 	*/
 {
 
+}
+
+
+bool CConfig::ReadSolverOptions
+(
+ const char *configFile
+)
+ /*
+	* Function that reads the solver specifications.
+	*/
+{
+  // Open input file.
+  std::ifstream paramFile(configFile);
+
+  // Read type of stencils used in first-derivative approximation.
+	AddVectorOption(paramFile, "TYPE_STENCIL", NameTypeStencil, true);
+  // Assign TypeStencil map.
+  MapTypeStencil();
+
+  // Consistency check.
+  if( NameTypeStencil.size() != nDim )
+    Terminate("CConfig::ReadSolverOptions", __FILE__, __LINE__,
+              "TYPE_STENCIL must be of dimension: 2.");
+
+  // Deduce stencil dimensions.
+  for(unsigned short iDim=0; iDim<nDim; iDim++){
+    switch( TypeStencil[iDim] ){
+      case(STENCIL_DRP_M3N3): NStencil[iDim] = 3; MStencil[iDim] = 3; break;
+      case(STENCIL_DRP_M2N4): NStencil[iDim] = 4; MStencil[iDim] = 2; break;
+      default:
+        Terminate("CConfig::ReadSolverOptions", __FILE__, __LINE__,
+                  "Type of stencil is not supported (yet).");
+    }
+  }
+
+  // Close file.
+  paramFile.close();
+
+	// Return happily.
+	return true;
 }
 
 
@@ -380,6 +425,45 @@ void CConfig::MapTemporalScheme
 	// Assign data according to dedicated enum.
 	TypeTemporalScheme = Mapper.at(NameTemporalScheme);
 }
+
+
+void CConfig::MapTypeStencil
+(
+ void
+)
+ /*
+	* Function that maps TypeStencil from string to its enum type.
+	*/
+{
+	// Initialize mapper.
+	std::map<std::string, unsigned short> Mapper;
+
+	// Assign mapper according to its enum convention.
+	Mapper["DRP_CENTRAL_M3N3"] = STENCIL_DRP_M3N3;
+	Mapper["DRP_UPWIND_M2N4"]  = STENCIL_DRP_M2N4;
+
+  // Initialize actual mapped data.
+  TypeStencil.resize(nDim);
+
+  // Loop over each dimension.
+  for(unsigned short iDim=0; iDim<nDim; iDim++){
+  	// Initialize to unknown.
+  	TypeStencil[iDim] = STENCIL_UNKNOWN;
+
+  	// Check if data abides by map convention.
+  	try {
+  		Mapper.at(NameTypeStencil[iDim]);
+  	}
+  	catch ( std::out_of_range& ) {
+  		Terminate("CConfig::MapTypeStencil", __FILE__, __LINE__,
+  							"Stencil data does not follow associated map convention!");
+  	}
+
+  	// Assign data according to dedicated enum.
+  	TypeStencil[iDim] = Mapper.at(NameTypeStencil[iDim]);
+  }
+}
+
 
 
 

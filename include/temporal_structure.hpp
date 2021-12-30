@@ -36,8 +36,44 @@ class CTemporal {
                            as3vector1d<as3double> &MonitoringData) = 0;
 
 	protected:
+    // Number of nodes in x-direction.
+    unsigned long nxNode;
+    // Number of nodes in y-direction.
+    unsigned long nyNode;
 		// Total number of nodes.
 		unsigned long nNode;
+
+    // Total nodes in x-direction, including ghost nodes.
+    unsigned long nxTotal;
+    // Total nodes in y-direction, including ghost nodes.
+    unsigned long nyTotal;
+
+    // Stencil size in west(left) x-direction.
+		unsigned short NxStencil;
+		// Stencil size in east(right) x-direction.
+		unsigned short MxStencil;
+
+		// Stencil size in south(bottom) y-direction.
+		unsigned short NyStencil;
+		// Stencil size in north(top) y-direction.
+		unsigned short MyStencil;
+
+    // Number of degrees-of-freedom in the working array.
+    unsigned long  nWorkingArrayDOFs;
+    // Number of variables needed in the working array.
+    unsigned short nWorkingArrayVar;
+    // Number of data entries needed in the working array.
+    unsigned short nWorkingArrayEntry;
+
+    // Work array needed for performing each grid sweep.
+    as3data1d<as3double> work_array;
+
+    // Function that initializes and defined the dimension parameters needed
+    // in the working array.
+    void InitializeWorkArrayDimension(CConfig *config_container);
+
+    // Function that initializes the working array by reserving its memory.
+    void InitializeWorkArray(void);
 
 	private:
 

@@ -14,8 +14,28 @@ CTemporal::CTemporal
 	* Constructor, used to initialize CTemporal.
 	*/
 {
+  // Extract number of nodes in x-direction.
+  nxNode = config_container->GetnxNode();
+  // Extract number of nodes in y-direction.
+  nyNode = config_container->GetnyNode();
   // Total number of nodes in grid.
-  nNode = geometry_container->GetnNode();
+  nNode  = geometry_container->GetnNode();
+
+  // Extract stencil widths, per dimension.
+  MxStencil = config_container->GetmxStencil();
+  NxStencil = config_container->GetnxStencil();
+  MyStencil = config_container->GetmyStencil();
+  NyStencil = config_container->GetnyStencil();
+
+  // Total nodes in x-diretcion.
+  nxTotal = nxNode + MxStencil + NxStencil;
+  // Total nodes in y-diretcion.
+  nyTotal = nyNode + MyStencil + NyStencil;
+
+  // Initialize working array parameter dimensions.
+  InitializeWorkArrayDimension(config_container);
+  // Reserve needed memory for the working array.
+  InitializeWorkArray();
 }
 
 
@@ -27,7 +47,64 @@ CTemporal::~CTemporal
 	* Destructor for CTemporal class, frees allocated memory.
 	*/
 {
+  for(unsigned short i=0; i<work_array.size(); i++)
+    if( work_array[i] ) delete [] work_array[i];
+}
 
+
+void CTemporal::InitializeWorkArrayDimension
+(
+ CConfig *config_container
+)
+ /*
+  * Function that defines the dimension parameters used in the working array.
+  */
+{
+  // Modified (inclusive ghost nodes) nodal dimension in x-direction.
+  unsigned long nx  = nxNode + MxStencil + NxStencil;
+  // Modified (inclusive ghost nodes) nodal dimension in y-direction.
+  unsigned long ny  = nyNode + MyStencil + NyStencil;
+  // Number of grid DOFs for each data value, including periodic ghost nodes.
+  nWorkingArrayDOFs = nx*ny;
+  // Number of variables per each working array entry.
+  nWorkingArrayVar  = nVar;
+
+  // Determine number of entries needed for the working array.
+  // Entries: 2,
+  // [0]: x-flux pre-computation.
+  // [1]: y-flux pre-computation.
+  nWorkingArrayEntry = 2;
+}
+
+
+void CTemporal::InitializeWorkArray
+(
+ void
+)
+ /*
+  * Function that reserves and initializes the required memory for a work array.
+  */
+{
+  // Total number of data needed for 1st/outer index in the working array.
+  const unsigned short nDataOuter = nWorkingArrayEntry*nWorkingArrayVar;
+  // Total number of data needed for 2nd/inner index in the working array.
+  const unsigned long  nDataInner = nWorkingArrayDOFs;
+
+  // Initialize the work array needed to carry out a residual update over an
+  // entire grid sweep iteration.
+  work_array.resize(nDataOuter, nullptr);
+
+  // Allocate data per every entry of the working array.
+  for(unsigned short i=0; i<work_array.size(); i++){
+
+    // Allocate the actual memory.
+    work_array[i] = new as3double[nDataInner]();
+
+    // Check if allocation failed.
+    if( !work_array[i] )
+      Terminate("CTemporal::InitializeWorkArray", __FILE__, __LINE__,
+                "Allocation failed for work_array.");
+  }
 }
 
 
@@ -75,6 +152,21 @@ CLSRK4Temporal::CLSRK4Temporal
 	rk4c[2] =  2526269341429.0/6820363962896.0;
 	rk4c[3] =  2006345519317.0/3224310063776.0;
 	rk4c[4] =  2802321613138.0/2924317926251.0;
+
+  // Reserve memory for tentative data.
+  DataSolutionTentative.resize(nVar, nullptr);
+
+  // Allocate in every variable.
+  for(unsigned short iVar=0; iVar<nVar; iVar++){
+
+    // Allocate actual memory.
+    DataSolutionTentative[iVar] = new as3double[nNode]();
+
+    // Check if allocation failed.
+    if( !DataSolutionTentative[iVar] )
+      Terminate("CLSRK4Temporal::CLSRK4Temporal", __FILE__, __LINE__,
+                "Allocation failed for DataSolutionTentative.");
+  }
 }
 
 
@@ -86,7 +178,8 @@ CLSRK4Temporal::~CLSRK4Temporal
 	* Destructor for CLSRK4Temporal class, frees allocated memory.
 	*/
 {
-
+  for(unsigned short i=0; i<DataSolutionTentative.size(); i++)
+    if( DataSolutionTentative[i] ) delete [] DataSolutionTentative[i];
 }
 
 
@@ -149,125 +242,106 @@ void CLSRK4Temporal::UpdateTime
 	* Function that performs a single LSRK4 stage sweep and update the residual.
 	*/
 {
-//   // Initialize max of the Mach number squared.
-//   as3double M2max = 0.0;
-//
-//   // Initiate OpenMP parallel region, if specified.
-// #ifdef HAVE_OPENMP
-// #pragma omp parallel
-// #endif
-//   {
-//     // Work array needed for performing a single grid sweep.
-//     as3data1d<as3double> work_array;
-//     // Reserve needed memory for the working array.
-//     InitializeWorkArray(work_array);
-//
-//
-//   // Impose the boundary conditions in all boundary elements across all zones.
-// #ifdef HAVE_OPENMP
-// #pragma omp for schedule(static), collapse(2)
-// #endif
-//     for(unsigned short iZone=0; iZone<nZone; iZone++){
-//       for(unsigned short iBoundary=0; iBoundary<nFace; iBoundary++){
-//
-//         // Extract the relevant boundary container.
-//         auto* boundary_container = solver_container[iZone]->GetBoundaryContainer(iBoundary);
-//
-//         // Impose boundary condition.
-//         boundary_container->ImposeBoundaryCondition(config_container,
-//                                                     geometry_container,
-//                                                     solver_container,
-//                                                     element_container,
-//                                                     spatial_container,
-//                                                     localTime);
-//       }
-//     }
-//
-//
-//     // Loop over all the elements in all the zones and compute their residual.
-// #ifdef HAVE_OPENMP
-// #pragma omp for schedule(static), reduction(max:M2max)
-// #endif
-//     for(unsigned long i=0; i<nElemTotal; i++){
-//
-//       // Extract local zone number.
-//       unsigned short iZone = MapGlobalToLocal[i][0];
-//       // Extract local zone element index.
-//       unsigned long iElem  = MapGlobalToLocal[i][1];
-//
-//       // Preprocess the data and apply the boundary conditions.
-//       iteration_container[iZone]->Preprocess(config_container,
-//   																					 geometry_container,
-//   																					 solver_container,
-//   																					 element_container,
-//   																					 spatial_container,
-//                                              work_array,
-//   																					 localTime, iElem);
-//
-//       // Perform a single grid sweep over a single unique element.
-//       iteration_container[iZone]->ComputeResidual(config_container,
-//       																						geometry_container,
-//       																						solver_container[iZone],
-//       																						element_container[iZone],
-//       																						spatial_container[iZone],
-//                                                   initial_container[iZone],
-//                                                   work_array,
-//       																						localTime, iElem,
-//                                                   MonitoringData);
-//
-//       // Set the max of the Mach squared in this element.
-//       M2max = std::max(M2max, MonitoringData[0]);
-//     }
-//
-//
-//     // Loop over all elements in all zones and update the solution.
-// #ifdef HAVE_OPENMP
-// #pragma omp for schedule(static)
-// #endif
-//     for(unsigned long i=0; i<nElemTotal; i++){
-//
-//       // Extract local zone number.
-//       unsigned short iZone = MapGlobalToLocal[i][0];
-//       // Extract local zone element index.
-//       unsigned long iElem  = MapGlobalToLocal[i][1];
-//
-//       // Extract current data container.
-//       auto* data_container = solver_container[iZone]->GetDataContainer(iElem);
-//
-//       // Number of nodes per zone.
-//       unsigned short nNode = nNodeZone[iZone];
-//
-//       // Extract current total solution.
-//       auto& sol = data_container->GetDataDOFsSol();
-//       // Extract current total residual.
-//       auto& res = data_container->GetDataDOFsRes();
-//       // Extract tentative solution.
-//       auto& tmp = DataDOFsSolTentative[iZone][iElem];
-//
-//       // Loop over every variable.
-//       for(unsigned short iVar=0; iVar<sol.size(); iVar++){
-//
-//         // Loop over nodes and update the residual.
-// #pragma omp simd
-//         for(unsigned short iNode=0; iNode<nNode; iNode++){
-//           // Predictor step, update the tentative solution.
-//           tmp[iVar][iNode]  = alpha*tmp[iVar][iNode] + dtTime*res[iVar][iNode];
-//         }
-// #pragma omp simd
-//         for(unsigned short iNode=0; iNode<nNode; iNode++){
-//           // Corrector step, update the true solution.
-//           sol[iVar][iNode] += beta*tmp[iVar][iNode];
-//         }
-//       }
-//     }
-//
-//     // Free the local work array.
-//     for(unsigned short i=0; i<work_array.size(); i++)
-//       if( work_array[i] ) delete [] work_array[i];
-//
-//   } // End of OpenMP parallel region.
-//
-//   // Assign the actual max of the Mach number.
-//   MonitoringData[0] = sqrt(M2max);
+  // Initialize max of the Mach number squared.
+  as3double M2max = 0.0;
+
+  // Extract current total solution.
+  auto& sol = solver_container->GetDataSolution();
+  // Extract current total residual.
+  auto& res = solver_container->GetDataResidual();
+  // Extract tentative solution.
+  auto& tmp = DataSolutionTentative;
+
+  // Total solution size in first dimension.
+  unsigned short nSolSize = sol.size();
+
+  // Initiate OpenMP parallel region, if specified.
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+#endif
+  {
+
+    // Loop over all nodes and copy solution to physical nodes of working array.
+#ifdef HAVE_OPENMP
+#pragma omp for schedule(static), collapse(3)
+#endif
+    // Loop over every variable and every node.
+    for(unsigned short iVar=0; iVar<nSolSize; iVar++){
+      for(unsigned long j=0; j<nyNode; j++){
+        for(unsigned long i=0; i<nxNode; i++){
+          // Ghost node index.
+          unsigned long I = i + NxStencil;
+          unsigned long J = j + NyStencil;
+
+          // Equivalent 1D running index of ghost node.
+          unsigned long IJ = J*nxTotal + I;
+          // Equivalent 1D running index of physical node.
+          unsigned long ij = j*nxNode  + i;
+
+          // Copy data point.
+          work_array[iVar][IJ] = sol[iVar][ij];
+        }
+      }
+    }
+
+
+    // Impose the boundary conditions on all boundary nodes.
+#ifdef HAVE_OPENMP
+#pragma omp for schedule(static)
+#endif
+    for(unsigned short iBoundary=0; iBoundary<nFace; iBoundary++){
+
+      // Extract the relevant boundary container.
+      auto* boundary_container = solver_container->GetBoundaryContainer(iBoundary);
+
+      // Impose boundary condition.
+      boundary_container->ImposeBoundaryCondition(config_container,
+                                                  geometry_container,
+                                                  work_array,
+                                                  localTime);
+    }
+
+  } // End of OpenMP parallel region.
+
+
+  // Preprocess the data, if needed.
+  iteration_container->Preprocess(config_container,
+                                  geometry_container,
+                                  solver_container,
+                                  spatial_container,
+                                  work_array,
+                                  localTime);
+
+  // Compute the residual on all physical nodes.
+  spatial_container->ComputeResidual(config_container,
+                                     geometry_container,
+                                     spatial_container,
+                                     initial_container,
+                                     work_array,
+                                     res,
+                                     localTime,
+                                     MonitoringData);
+
+  // Set the max of the Mach squared in this element.
+  M2max = MonitoringData[0];
+
+
+  // Loop over all nodes and update the solution.
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static), collapse(2)
+#endif
+  // Loop over every variable and node.
+  for(unsigned short iVar=0; iVar<nSolSize; iVar++){
+    for(unsigned long l=0; l<nNode; l++){
+      // Predictor step, update the tentative solution.
+      tmp[iVar][l]  = alpha*tmp[iVar][l] + dtTime*res[iVar][l];
+      // Corrector step, update the true solution.
+      sol[iVar][l] += beta*tmp[iVar][l];
+    }
+  } // End of OpenMP parallel region.
+
+
+  // Assign the actual max of the Mach number.
+  MonitoringData[0] = sqrt(M2max);
 }
 
