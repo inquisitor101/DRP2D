@@ -39,6 +39,8 @@ class CGeometry {
     unsigned long nyNode;
     // Total number of nodes.
     unsigned long nNode;
+    // Number of nodes in buffer layer(s).
+    as3vector1d<unsigned long> nbNode;
 
     // Grid domain size.
     // Convention: (WEST, EAST, SOUTH, NORTH).

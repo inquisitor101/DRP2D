@@ -135,3 +135,60 @@ class CLSRK4Temporal : public CTemporal {
                     as3double               beta,
                     as3vector1d<as3double> &MonitoringData);
 };
+
+
+
+class CSSPRK3Temporal : public CTemporal {
+
+	public:
+		// Constructor.
+		CSSPRK3Temporal(CConfig    *config_container,
+    							 CGeometry   *geometry_container,
+    							 CIteration  *iteration_container,
+    							 CSolver     *solver_container,
+    							 CSpatial    *spatial_container);
+
+		// Destructor.
+		~CSSPRK3Temporal(void) final;
+
+		// Function that performs an update over the entire simulation in time.
+		void TimeMarch(CConfig                *config_container,
+					 				 CGeometry              *geometry_container,
+					 				 CIteration             *iteration_container,
+					 				 CSolver                *solver_container,
+					 				 CSpatial               *spatial_container,
+                   CInitial               *initial_container,
+					 				 as3double               physicalTime,
+									 as3double               dtTime,
+                   as3vector1d<as3double> &MonitoringData) final;
+
+	protected:
+
+	private:
+    // Number of RK stages: this is a 3-stage scheme.
+		unsigned short nStageRK = SSPRK3_N_STAGES;
+		// Number of storage for tentative data.
+		unsigned short nStorage = SSPRK3_N_STORAGE;
+
+		// LSRK4 coefficients.
+		as3vector1d<as3double> rk4a;
+		as3vector1d<as3double> rk4b;
+		as3vector1d<as3double> rk4c;
+
+		// Tentative/intermediate solution stored.
+		// Dimension: [iVar][iNode].
+		as3data1d<as3double> DataSolutionTentative;
+
+    // Function that performs a single stage sweep of a SSPRK3.
+		void UpdateTime(CConfig                *config_container,
+									  CGeometry              *geometry_container,
+									  CIteration             *iteration_container,
+									  CSolver                *solver_container,
+									  CSpatial               *spatial_container,
+                    CInitial               *initial_container,
+									  as3double               localTime,
+                    as3double               dtTime,
+                    as3double               alpha,
+                    as3double               beta,
+                    as3vector1d<as3double> &MonitoringData);
+};

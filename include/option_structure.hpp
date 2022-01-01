@@ -176,9 +176,9 @@ enum FILTERING_TYPE {
 
 // Enumerated type of buffer layer.
 enum BUFFER_LAYER_TYPE {
-  NO_LAYER                = 0, // No layer.
-  PML_LAYER               = 1, // PML layer.
-  SPONGE_LAYER            = 2  // sponge layer.
+  NO_LAYER       = 0, // No layer.
+  PML_XLAYERMIN  = 1, // PML layer in west x-direction.
+  PML_XLAYERMAX  = 2, // PML layer in east x-direction.
 };
 
 // Enumerated type of boundary condition.

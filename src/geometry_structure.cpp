@@ -17,6 +17,8 @@ CGeometry::CGeometry
 	// Deduce total number of nodes.
 	nNode  = nxNode*nyNode;
 
+  // Number of nodes in buffer-layer.
+  nbNode   = config_container->GetNodeBufferLayer();
   // Obtain grid domain size.
   GridSize = config_container->GetDomainBound();
 
@@ -78,6 +80,10 @@ void CGeometry::GenerateGrid
       Terminate("CGeometry::GenerateGrid", __FILE__, __LINE__,
                 "Allocation failed for GridCoordinate.");
   }
+
+  // Extract number of nodes in the buffer layer.
+  // const unsigned long nb = config_container->
+
 
   // Explicitly define grid boundary coordinates.
   const as3double x0 = GridSize[0], x1 = GridSize[1];

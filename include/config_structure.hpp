@@ -72,6 +72,8 @@ class CConfig {
     bool GetAdaptTime(void)                                    const {return AdaptTime;}
     // Getter: returns TypeStencil[iDim].
     unsigned short GetTypeStencil(unsigned short iDim)         const {return TypeStencil[iDim];}
+    // Getter: returns NodeBufferLayer.
+    const as3vector1d<unsigned long> &GetNodeBufferLayer(void) const {return NodeBufferLayer;}
 
 	private:
     // Default data parameters.
@@ -90,10 +92,18 @@ class CConfig {
       as3double CFL = 1.0;
       // Adaptive time step.
       std::string NameAdaptTime = "false";
+      // Type of buffer layer.
+      as3vector1d<std::string> NameTypeBufferLayer = { "NONE" };
       // Sponge-layer damping exponential coefficient.
-      as3double DampingExponent = 2.0;
+      as3vector1d<as3double> DampingExponent = { 2.0 };
       // Sponge-layer damping constant.
-      as3double DampingConstant = 2.0;
+      as3vector1d<as3double> DampingConstant = { 2.0 };
+      // Grid-stretching constant.
+      as3vector1d<as3double> GridStretchingConstant = { 1.0 };
+      // Grid-stretching exponent.
+      as3vector1d<as3double> GridStretchingExponent = { 1.0 };
+      // Number of nodes per buffer layer.
+      as3vector1d<unsigned long> NodeBufferLayer = { 10 };
       // Free-stream Mach number.
       as3double MachInf = 0.5;
       // Flow angle in degrees (w.r.t. x-direction).
@@ -104,10 +114,6 @@ class CConfig {
       as3double DisturbanceRatio = 0.2;
       // Disturbance width.
       as3double DisturbanceWidth = 0.25;
-      // Grid-stretching constant.
-      as3double GridStretchingConstant = 1.0;
-      // Grid-stretching exponent.
-      as3double GridStretchingExponent = 1.0;
       // Grid-stretching used.
       bool GridStretching = false;
 
@@ -135,6 +141,10 @@ class CConfig {
     // Type of solver per zone.
     unsigned short TypeSolver;
 
+    // Type of buffer layer, string name.
+    as3vector1d<std::string> NameTypeBufferLayer;
+    // Type of buffer layer, enum values.
+    as3vector1d<unsigned short> TypeBufferLayer;
 
     // Decide whether or not to restart a simulation.
     bool RestartSolution;
@@ -184,16 +194,18 @@ class CConfig {
     unsigned short TypeIC;
 
     // Sponge-layer damping exponential coefficient.
-    as3double DampingExponent;
+    as3vector1d<as3double> DampingExponent;
     // Sponge-layer damping constant.
-    as3double DampingConstant;
+    as3vector1d<as3double> DampingConstant;
+    // Number of nodes per buffer layer.
+    as3vector1d<unsigned long> NodeBufferLayer;
 
     // Whether or not to use grid-stretching.
     bool GridStretching;
     // Grid-stretching constant.
-    as3double GridStretchingConstant;
+    as3vector1d<as3double> GridStretchingConstant;
     // Grid-stretching exponent.
-    as3double GridStretchingExponent;
+    as3vector1d<as3double> GridStretchingExponent;
 
     // Type of boundary conditions, string name:
     // ... indices: (SOUTH, NORTH, WEST, EAST).
@@ -211,6 +223,8 @@ class CConfig {
     void MapTypeExternalBC(void);
     // Function that maps TypeStencil from string to enum.
     void MapTypeStencil(void);
+    // Function that maps TypeBufferLayer from string to enum.
+    void MapTypeBufferLayer(void);
 
 
     // Function that reads grid options.

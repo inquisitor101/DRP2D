@@ -94,6 +94,22 @@ bool CConfig::ReadSolverOptions
   // Assign TypeStencil map.
   MapTypeStencil();
 
+  // Read buffer layer type.
+  AddVectorOption(paramFile, "TYPE_BUFFER_LAYER", NameTypeBufferLayer, DefaultParam.NameTypeBufferLayer, true);
+  // Assign BufferLayerType map.
+  MapTypeBufferLayer();
+
+  // Read the number of nodes in each buffer layer.
+  AddVectorOption(paramFile, "BUFFER_LAYER_NODE", NodeBufferLayer, DefaultParam.NodeBufferLayer, true);
+
+  // Consistency check.
+  if( NodeBufferLayer.size() != TypeBufferLayer.size() )
+    Terminate("CConfig::ReadSolverOptions", __FILE__, __LINE__,
+              "BUFFER_LAYER_NODE and TYPE_BUFFER_LAYER must be of same dimension.");
+
+  // Supplement the total number of grid nodes to account for the buffer-layer nodes.
+  for(auto nb : NodeBufferLayer ) nxNode += nb;
+
   // Consistency check.
   if( NameTypeStencil.size() != nDim )
     Terminate("CConfig::ReadSolverOptions", __FILE__, __LINE__,
@@ -176,7 +192,6 @@ bool CConfig::ReadICOptions
 	if( CenterX0.size()%2 != 0)
 	  Terminate("CConfig::ReadICOptions", __FILE__, __LINE__,
 	            "CenterX0 must be of size multiple of nDim,");
-
 
   // Close file.
   paramFile.close();
@@ -306,15 +321,15 @@ bool CConfig::ReadBoundaryOptions
   // Assign TypeBC map. Note, indices: (SOUTH, NORTH, WEST, EAST).
   MapTypeExternalBC();
 
-  // Read damping constant.
-  AddScalarOption(paramFile, "SPONGE_DAMPING_CONSTANT", DampingConstant, DefaultParam.DampingConstant, true);
-  // Read damping exponential.
-  AddScalarOption(paramFile, "SPONGE_DAMPING_EXPONENT", DampingExponent, DefaultParam.DampingExponent, true);
+  // Read the sponge-layer damping constant.
+  AddVectorOption(paramFile, "SPONGE_DAMPING_CONSTANT", DampingConstant, DefaultParam.DampingConstant, true);
+  // Read the sponge-damping exponential.
+  AddVectorOption(paramFile, "SPONGE_DAMPING_EXPONENT", DampingExponent, DefaultParam.DampingExponent, true);
 
   // Read the grid-stretching constant.
-  AddScalarOption(paramFile, "GRID_STRETCHING_CONSTANT", GridStretchingConstant, DefaultParam.GridStretchingConstant, true);
+  AddVectorOption(paramFile, "GRID_STRETCHING_CONSTANT", GridStretchingConstant, DefaultParam.GridStretchingConstant, true);
   // Read the grid-stretching exponential.
-  AddScalarOption(paramFile, "GRID_STRETCHING_EXPONENT", GridStretchingExponent, DefaultParam.GridStretchingExponent, true);
+  AddVectorOption(paramFile, "GRID_STRETCHING_EXPONENT", GridStretchingExponent, DefaultParam.GridStretchingExponent, true);
 
   // Close file.
   paramFile.close();
@@ -461,6 +476,48 @@ void CConfig::MapTypeStencil
 
   	// Assign data according to dedicated enum.
   	TypeStencil[iDim] = Mapper.at(NameTypeStencil[iDim]);
+  }
+}
+
+
+void CConfig::MapTypeBufferLayer
+(
+ void
+)
+ /*
+	* Function that maps NameTypeBufferLayer to its enum type.
+	*/
+{
+	// Initialize mapper.
+	std::map<std::string, unsigned short> Mapper;
+
+  // Assign mapper according to its enum convention.
+  Mapper["NONE"]          = NO_LAYER;
+  Mapper["PML_XLAYERMIN"] = PML_XLAYERMIN;
+  Mapper["PML_XLAYERMAX"] = PML_XLAYERMAX;
+
+  // Number of layers.
+  unsigned short nBuffer = NameTypeBufferLayer.size();
+
+  // Initialize to no layer..
+	TypeBufferLayer.resize(nBuffer, NO_LAYER);
+
+  // Iterate of data.
+	for(int iBuffer=0; iBuffer<nBuffer; iBuffer++){
+
+    // Initialize to no layer.
+    TypeBufferLayer[iBuffer] = NO_LAYER;
+
+    // Check if data abides by map convention.
+  	try {
+  		Mapper.at(NameTypeBufferLayer[iBuffer]);
+  	}
+  	catch ( std::out_of_range& ) {
+  		Terminate("CConfig::MapTypeBufferLayer", __FILE__, __LINE__,
+  							"Buffer layer type does not follow associated map convention!");
+  	}
+    // Assign data according to dedicated enum.
+  	TypeBufferLayer[iBuffer] = Mapper.at(NameTypeBufferLayer[iBuffer]);
   }
 }
 
