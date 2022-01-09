@@ -4,6 +4,7 @@
 #include "config_structure.hpp"
 #include "geometry_structure.hpp"
 #include "initial_structure.hpp"
+#include "stencil_structure.hpp"
 
 
 
@@ -11,9 +12,11 @@ class CSpatial {
 
 	public:
 		// Constructor.
-		CSpatial(CConfig   	*config_container,
-						 CGeometry 	*geometry_container,
-             CInitial   *initial_container);
+		CSpatial(CConfig   	   *config_container,
+						 CGeometry 	   *geometry_container,
+             CInitial      *initial_container,
+             CStencil     **stencil_container,
+             unsigned short iZone);
 
 		// Destructor.
 		virtual ~CSpatial(void);
@@ -30,6 +33,9 @@ class CSpatial {
                                  as3vector1d<as3double> &MonitoringData) = 0;
 
   protected:
+    // Current zone ID.
+    unsigned short zoneID;
+
     // Number of nodes in x-direction.
     unsigned long nxNode;
     // Number of nodes in y-direction.
@@ -78,9 +84,11 @@ class CEESpatial : public CSpatial {
 
 	public:
 		// Constructor.
-		CEESpatial(CConfig   	*config_container,
-						 	 CGeometry 	*geometry_container,
-               CInitial   *initial_container);
+		CEESpatial(CConfig   	   *config_container,
+  						 CGeometry 	   *geometry_container,
+               CInitial      *initial_container,
+               CStencil     **stencil_container,
+               unsigned short iZone);
 
 		// Destructor.
 		~CEESpatial(void);

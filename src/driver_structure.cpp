@@ -10,6 +10,9 @@ CDriver::CDriver
 	* Constructor, used to set-up, run and (post-)process data.
 	*/
 {
+  // Set number of zones.
+  nZone = config->GetnZone();
+
 	// Initialize all containers to nullptr.
 	SetContainers_Null();
 
@@ -19,45 +22,62 @@ CDriver::CDriver
   // Preprocess geometry container.
   Geometry_Preprocessing(config_container);
 
-  // Preprocess input container.
-  Input_Preprocessing(config_container,
-  										geometry_container);
-
-  // Preprocess output container.
-  Output_Preprocessing(config_container,
-  										 geometry_container);
-
-  // Preprocess initial container.
-  Initial_Preprocessing(config_container,
-  											geometry_container);
-
-  // Preprocess spatial container.
-  Spatial_Preprocessing(config_container,
-  											geometry_container,
-                        initial_container);
-
-  // Preprocess solver container.
-  Solver_Preprocessing(config_container,
-  										 geometry_container,
-                       initial_container,
-  										 spatial_container);
-
-  // Preprocess iteration container.
-  Iteration_Preprocessing(config_container,
-  												geometry_container,
-  												solver_container,
-  												spatial_container);
-
-  // Preprocess the parallelization. Note, this must be set before the
-  // temporal container.
-  Parallelization_Preprocessing();
-
-  // Preprocess temporal container.
-  Temporal_Preprocessing(config_container,
-  											 geometry_container,
-  											 iteration_container,
-  											 solver_container,
-  											 spatial_container);
+  // // Preprocess stencil container.
+  // Stencil_Preprocessing(config_container,
+  //                       geometry_container);
+  //
+  // // Preprocess input container.
+  // Input_Preprocessing(config_container,
+  // 										geometry_container);
+  //
+  // // Preprocess output container.
+  // Output_Preprocessing(config_container,
+  // 										 geometry_container);
+  //
+  // // Preprocess initial container.
+  // Initial_Preprocessing(config_container,
+  // 											geometry_container);
+  //
+  // // Preprocess spatial container.
+  // Spatial_Preprocessing(config_container,
+  // 											geometry_container,
+  //                      initial_container,
+  //                      stencil_container);
+  //
+  // // Preprocess solver container.
+  // Solver_Preprocessing(config_container,
+  // 										 geometry_container,
+  //                      initial_container,
+  //                      stencil_container,
+  // 										 spatial_container);
+  //
+  // // Preprocess iteration container.
+  // Iteration_Preprocessing(config_container,
+  // 												geometry_container,
+  //                         stencil_container,
+  // 												solver_container,
+  // 												spatial_container);
+  //
+  // // Preprocess the parallelization. Note, this must be set before the
+  // // temporal container.
+  // Parallelization_Preprocessing();
+  //
+  // // Preprocess temporal container.
+  // Temporal_Preprocessing(config_container,
+  // 											 geometry_container,
+  //                        stencil_container,
+  // 											 iteration_container,
+  // 											 solver_container,
+  // 											 spatial_container);
+  //
+  // // Preprocess the process container.
+  // Process_Preprocessing(config_container,
+  //                       geometry_container,
+  //                       output_container,
+  //                       initial_container,
+  //                       stencil_container,
+  //                       solver_container,
+  //                       spatial_container);
 
 
   // Simulation start time.
@@ -99,29 +119,65 @@ CDriver::~CDriver
 	if(input_container != nullptr) delete input_container;
 	std::cout << "Done." << std::endl;
 
-	std::cout << "  deleting COutput........ ";
-	if(output_container != nullptr) delete output_container;
-	std::cout << "Done." << std::endl;
-
 	std::cout << "  deleting CIteration..... ";
-	if(iteration_container != nullptr) delete iteration_container;
+	if(iteration_container != nullptr){
+		for(unsigned short iZone=0; iZone<nZone; iZone++){
+			if(iteration_container[iZone] != nullptr) delete iteration_container[iZone];
+		}
+		delete [] iteration_container;
+	}
 	std::cout << "Done." << std::endl;
 
 	std::cout << "  deleting CSolver........ ";
-	if(solver_container != nullptr) delete solver_container;
+	if(solver_container != nullptr){
+		for(unsigned short iZone=0; iZone<nZone; iZone++){
+			if(solver_container[iZone] != nullptr) delete solver_container[iZone];
+		}
+		delete [] solver_container;
+	}
 	std::cout << "Done." << std::endl;
 
 	std::cout << "  deleting CInitial....... ";
-	if(initial_container != nullptr) delete initial_container;
+	if(initial_container != nullptr){
+		for(unsigned short iZone=0; iZone<nZone; iZone++){
+			if(initial_container[iZone] != nullptr) delete initial_container[iZone];
+		}
+		delete [] initial_container;
+	}
 	std::cout << "Done." << std::endl;
 
 	std::cout << "  deleting CSpatial....... ";
-	if(spatial_container != nullptr) delete spatial_container;
+	if(spatial_container != nullptr){
+		for(unsigned short iZone=0; iZone<nZone; iZone++){
+			if(spatial_container[iZone] != nullptr) delete spatial_container[iZone];
+		}
+		delete [] spatial_container;
+	}
 	std::cout << "Done." << std::endl;
 
   std::cout << "  deleting CProcess....... ";
-	if(process_container != nullptr) delete process_container;
+	if(process_container != nullptr){
+		for(unsigned short iZone=0; iZone<nZone; iZone++){
+			if(process_container[iZone] != nullptr) delete process_container[iZone];
+		}
+		delete [] process_container;
+	}
 	std::cout << "Done." << std::endl;
+
+  std::cout << "  deleting CStencil....... ";
+	if(stencil_container != nullptr){
+		for(unsigned short iZone=0; iZone<nZone; iZone++){
+			if(stencil_container[iZone] != nullptr){
+        for(unsigned short iDim=0; iDim<nDim; iDim++){
+          if(stencil_container[iZone][iDim] != nullptr ) delete stencil_container[iZone][iDim];
+        }
+        delete [] stencil_container[iZone];
+      }
+		}
+		delete [] stencil_container;
+	}
+	std::cout << "Done." << std::endl;
+
 
 	// Set all containers deleted to nullptr.
 	config_container    = nullptr;
@@ -134,6 +190,7 @@ CDriver::~CDriver
 	spatial_container   = nullptr;
 	initial_container   = nullptr;
   process_container   = nullptr;
+  stencil_container   = nullptr;
 
 	std::cout << "Done." << std::endl;
 }
@@ -148,7 +205,8 @@ void CDriver::Parallelization_Preprocessing
   */
 {
 	// Total number of nodes.
-  unsigned long nNode = geometry_container->GetnNode();
+  unsigned long nNode = 0;
+  for(unsigned short iZone=0; iZone<nZone; iZone++) nNode += geometry_container->GetnNode(iZone);
 
   // Report output.
 	std::cout << "----------------------------------------------"
@@ -201,6 +259,31 @@ void CDriver::SetContainers_Null
 	spatial_container   = nullptr;
 	initial_container   = nullptr;
   process_container   = nullptr;
+  stencil_container   = nullptr;
+
+	// Containers that are zone dependant.
+	iteration_container = new CIteration*[nZone];
+	solver_container  	= new CSolver*[nZone];
+	spatial_container   = new CSpatial*[nZone];
+	initial_container   = new CInitial*[nZone];
+  process_container   = new CProcess*[nZone];
+  stencil_container 	= new CStencil**[nZone];
+
+	// Containers per zone.
+	for(unsigned short iZone=0; iZone<nZone; iZone++){
+		iteration_container[iZone] = nullptr;
+		solver_container[iZone]    = nullptr;
+		spatial_container[iZone]   = nullptr;
+		initial_container[iZone]   = nullptr;
+    process_container[iZone]   = nullptr;
+    stencil_container[iZone]   = nullptr;
+
+    // Container per dimension.
+    stencil_container[iZone]   = CStencil*[nDim];
+    for(unsigned short iDim=0; iDim<nDim; iDim++){
+      stencil_container[iZone][iDim] = nullptr;
+    }
+	}
 }
 
 
@@ -216,6 +299,37 @@ void CDriver::Geometry_Preprocessing
 	geometry_container = new CGeometry(config_container);
 }
 
+
+void CDriver::Stencil_Preprocessing
+(
+ CConfig   *config_container,
+ CGeometry *geometry_container
+)
+ /*
+	* Function that preprocesses the stencil container.
+	*/
+{
+  // Assign stencil per each zone.
+  for(unsigned short iZone=0; iZone<nZone; iZone++){
+
+    // Assign stencil per dimension.
+    for(unsigned short iDim=0; iDim<nDim; iDim++){
+
+      // Check which stencil to specify.
+      switch( config_container->GetTypeStencil(iZone, iDim) ){
+
+        // DRP M3N3 stencil.
+        case(STENCIL_DRP_M3N3): stencil_container[iZone][iDim] = CDRPM3N3Stencil(config_container, geometry_container); break;
+
+        // Otherwise, exit immediately.
+        default:
+          Terminate("CDriver::Stencil_Preprocessing", __FILE__, __LINE__,
+                    "Stencil for solver specified is not (yet) implemented!");
+      }
+
+    }
+  }
+}
 
 void CDriver::Input_Preprocessing
 (
@@ -249,32 +363,39 @@ void CDriver::Output_Preprocessing
 
 void CDriver::Iteration_Preprocessing
 (
- CConfig     *config_container,
- CGeometry   *geometry_container,
- CSolver     *solver_container,
- CSpatial    *spatial_container
+ CConfig    *config_container,
+ CGeometry  *geometry_container,
+ CStencil ***stencil_container,
+ CSolver   **solver_container,
+ CSpatial  **spatial_container
 )
  /*
 	* Function that preprocesses the iteration container.
 	*/
 {
-  // Check which iteration to specify.
-  switch( config_container->GetTypeSolver() ){
+  // Assign iteration per each zone.
+  for(unsigned short iZone=0; iZone<nZone; iZone++){
 
-  	// Euler solver.
-  	case(SOLVER_EE):
-  	{
-      // Assign iteration container.
-  		iteration_container = new CEEIteration(config_container,
-  																				 	 geometry_container,
-  																					 solver_container);
-  		break;
-  	}
+    // Check which iteration to specify.
+    switch( config_container->GetTypeSolver(iZone) ){
 
-  	// Otherwise, exit immediately.
-  	default:
-  		Terminate("CDriver::Iteration_Preprocessing", __FILE__, __LINE__,
-  							"Iteration strategy for solver specified is not (yet) implemented!");
+      // Euler solver.
+      case(SOLVER_EE):
+      {
+        // Assign iteration container.
+        iteration_container[iZone] = new CEEIteration(config_container,
+                                                      geometry_container,
+                                                      solver_container,
+                                                      stencil_container,
+                                                      iZone);
+        break;
+      }
+
+      // Otherwise, exit immediately.
+      default:
+        Terminate("CDriver::Iteration_Preprocessing", __FILE__, __LINE__,
+                  "Iteration strategy for solver specified is not (yet) implemented!");
+    }
   }
 }
 
@@ -283,31 +404,38 @@ void CDriver::Solver_Preprocessing
 (
  CConfig   	 *config_container,
  CGeometry 	 *geometry_container,
- CInitial    *initial_container,
- CSpatial    *spatial_container
+ CInitial   **initial_container,
+ CStencil  ***stencil_container,
+ CSpatial   **spatial_container
 )
  /*
 	* Function that preprocesses the solver container.
 	*/
 {
-  // Check which solver to specify.
-  switch( config_container->GetTypeSolver() ){
+  // Assign solver per each zone.
+  for(unsigned short iZone=0; iZone<nZone; iZone++){
 
-  	// Euler solver.
-  	case(SOLVER_EE):
-  	{
-      // Assign solver container.
-  		solver_container = new CEESolver(config_container,
-																			 geometry_container,
-                                       initial_container,
-																			 spatial_container);
-  		break;
-  	}
+    // Check which solver to specify.
+    switch( config_container->GetTypeSolver(iZone) ){
 
-  	// Otherwise, exit immediately.
-  	default:
-  		Terminate("CDriver::Solver_Preprocessing", __FILE__, __LINE__,
-  							"Solver container specified is not (yet) implemented!");
+      // Euler solver.
+      case(SOLVER_EE):
+      {
+        // Assign solver container.
+        solver_container[iZone] = new CEESolver(config_container,
+                                                geometry_container,
+                                                initial_container[iZone],
+                                                stencil_container[iZone],
+                                                spatial_container[iZone],
+                                                iZone);
+        break;
+      }
+
+      // Otherwise, exit immediately.
+      default:
+        Terminate("CDriver::Solver_Preprocessing", __FILE__, __LINE__,
+                  "Solver container specified is not (yet) implemented!");
+    }
   }
 }
 
@@ -316,31 +444,78 @@ void CDriver::Spatial_Preprocessing
 (
  CConfig   	*config_container,
  CGeometry 	*geometry_container,
- CInitial   *initial_container
+ CInitial  **initial_container,
+ CStencil ***stencil_container
 )
  /*
 	* Function that preprocesses the spatial discretization container.
 	*/
 {
-  // Check which spatial discretization to specify.
-  switch( config_container->GetTypeSolver() ){
+  // Flag for error detection.
+  bool ErrorDetected = false;
 
-    // Euler solver.
-    case(SOLVER_EE):
-    {
-      // Assign spatial class.
-      spatial_container = new CEESpatial(config_container,
-    																	   geometry_container,
-                                         initial_container);
-      break;
+  // Assign spatial discretization per each zone.
+  for(unsigned short iZone=0; iZone<nZone; iZone++){
+
+    // Check which spatial discretization to specify.
+    switch( config_container->GetTypeSolver(iZone) ){
+
+      // Euler solver.
+      case(SOLVER_EE):
+      {
+
+        // Check what type of buffer layer this is, if any.
+        switch( config_container->GetTypeBufferLayer(iZone) ){
+
+          // EE-type spatial container.
+          case(NO_LAYER):
+          {
+            spatial_container[iZone] = new CEESpatial(config_container,
+                                                      geometry_container,
+                                                      initial_container[iZone],
+                                                      stencil_container[iZone],
+                                                      iZone);
+            break;
+          }
+
+          // Sponge EE-type spatial container.
+          case(SPONGE_LAYER):
+          {
+            spatial_container[iZone] = new CEESpongeSpatial(config_container,
+                                                            geometry_container,
+                                                            initial_container[iZone],
+                                                            stencil_container[iZone],
+                                                            iZone);
+            break;
+          }
+
+          // PML EE-type spatial container.
+          case(PML_LAYER):
+          {
+            spatial_container[iZone] = new CEEPMLSpatial(config_container,
+                                                         geometry_container,
+                                                         initial_container[iZone],
+                                                         stencil_container[iZone],
+                                                         iZone);
+            break;
+          }
+
+          // Otherwise, flag for an error.
+          default: ErrorDetected = true;
+        }
+
+        break;
+      }
+
+      // Otherwise, exit immediately.
+      default: ErrorDetected = true;
     }
 
-    // Otherwise, exit immediately.
-    default:
-      Terminate("CDriver::Spatial_Preprocessing", __FILE__, __LINE__,
-                "Spatial container for solver specified is not (yet) implemented!");
+  }
 
-	}
+  if( ErrorDetected )
+    Terminate("CDriver::Spatial_Preprocessing", __FILE__, __LINE__,
+              "Spatial container for solver specified is not (yet) implemented!");
 }
 
 
@@ -349,34 +524,42 @@ void CDriver::Process_Preprocessing
  CConfig    *config_container,
  CGeometry  *geometry_container,
  COutput    *output_container,
- CInitial   *initial_container,
- CSolver    *solver_container,
- CSpatial   *spatial_container
+ CInitial  **initial_container,
+ CStencil ***stencil_container,
+ CSolver   **solver_container,
+ CSpatial  **spatial_container
 )
  /*
   * Function that preprocesses the process container.
   */
 {
-  // Check which process to specify.
-  switch( config_container->GetTypeSolver() ){
+  // Assign process per each zone.
+  for(unsigned short iZone=0; iZone<nZone; iZone++){
 
-    // Pure EE solver.
-    case(SOLVER_EE):
-    {
-      // Assign process container.
-      process_container = new CEEProcess(config_container,
-                                         geometry_container,
-                                         output_container,
-                                         initial_container,
-                                         solver_container,
-                                         spatial_container);
-      break;
+    // Check which process to specify.
+    switch( config_container->GetTypeSolver(iZone) ){
+
+      // Pure EE solver.
+      case(SOLVER_EE):
+      {
+        // Assign process container.
+        process_container[iZone] = new CEEProcess(config_container,
+                                                  geometry_container,
+                                                  output_container,
+                                                  initial_container[iZone],
+                                                  stencil_container[iZone],
+                                                  solver_container[iZone],
+                                                  spatial_container[iZone],
+                                                  iZone);
+        break;
+      }
+
+      // Otherwise, exit immediately.
+      default:
+        Terminate("CDriver::Process_Preprocessing", __FILE__, __LINE__,
+                  "Process container for specified solver is not (yet) implemented!");
+
     }
-
-    // Otherwise, exit immediately.
-    default:
-      Terminate("CDriver::Process_Preprocessing", __FILE__, __LINE__,
-                "Process container for specified solver is not (yet) implemented!");
   }
 }
 
@@ -423,9 +606,10 @@ void CDriver::Temporal_Preprocessing
 (
  CConfig     *config_container,
  CGeometry   *geometry_container,
- CIteration  *iteration_container,
- CSolver     *solver_container,
- CSpatial    *spatial_container
+ CStencil  ***stencil_container,
+ CIteration **iteration_container,
+ CSolver    **solver_container,
+ CSpatial   **spatial_container
 )
  /*
 	* Function that preprocesses the temporal container.

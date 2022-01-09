@@ -99,32 +99,11 @@ bool CConfig::ReadSolverOptions
   // Assign BufferLayerType map.
   MapTypeBufferLayer();
 
-  // Read the number of nodes in each buffer layer.
-  AddVectorOption(paramFile, "BUFFER_LAYER_NODE", NodeBufferLayer, DefaultParam.NodeBufferLayer, true);
-
-  // Consistency check.
-  if( NodeBufferLayer.size() != TypeBufferLayer.size() )
-    Terminate("CConfig::ReadSolverOptions", __FILE__, __LINE__,
-              "BUFFER_LAYER_NODE and TYPE_BUFFER_LAYER must be of same dimension.");
-
-  // Supplement the total number of grid nodes to account for the buffer-layer nodes.
-  for(auto nb : NodeBufferLayer ) nxNode += nb;
-
   // Consistency check.
   if( NameTypeStencil.size() != nDim )
     Terminate("CConfig::ReadSolverOptions", __FILE__, __LINE__,
               "TYPE_STENCIL must be of dimension: 2.");
 
-  // Deduce stencil dimensions.
-  for(unsigned short iDim=0; iDim<nDim; iDim++){
-    switch( TypeStencil[iDim] ){
-      case(STENCIL_DRP_M3N3): NStencil[iDim] = 3; MStencil[iDim] = 3; break;
-      case(STENCIL_DRP_M2N4): NStencil[iDim] = 4; MStencil[iDim] = 2; break;
-      default:
-        Terminate("CConfig::ReadSolverOptions", __FILE__, __LINE__,
-                  "Type of stencil is not supported (yet).");
-    }
-  }
 
   // Close file.
   paramFile.close();
@@ -145,16 +124,50 @@ bool CConfig::ReadGridOptions
   // Open input file.
   std::ifstream paramFile(configFile);
 
-	// Read number of nodes in x-direction.
-	AddScalarOption(paramFile, "NUMBER_XNODE", nxNode, true);
-	// Read number of nodes in y-direction.
-	AddScalarOption(paramFile, "NUMBER_YNODE", nyNode, true);
+  // Number of zones expected.
+	AddScalarOption(paramFile, "NUMBER_ZONE", nZone, DefaultParam.nZone, true);
+
+  // Read zone regions.
+	AddVectorOption(paramFile, "MARKER_ZONE", NameZoneMarker, DefaultParam.NameZoneMarker, true);
+  // Pad entries for NameZoneMarker.
+  PadEntriesVectorData(NameZoneMarker, "MARKER_ZONE", nZone);
 
   // Read domain bounds in each zone.
 	AddVectorOption(paramFile, "DOMAIN_BOUND", DomainBound, true);
 
+	// Read number of nodes in x-direction, per zone.
+	AddVectorOption(paramFile, "NUMBER_XNODE", nxNode, true);
+  // Pad entries for nxNode.
+  PadEntriesVectorData(nxNode, "NUMBER_XNODE", nZone, 1, 2);
+
+	// Read number of nodes in y-direction, per zone.
+	AddVectorOption(paramFile, "NUMBER_YNODE", nyNode, true);
+  // Pad entries for nyNode.
+  PadEntriesVectorData(nyNode, "NUMBER_YNODE", nZone, 1, 2);
+
+  // Read zone conformity, if specified.
+  AddBoolOption(paramFile, "ZONE_CONFORMITY", ZoneConformity, DefaultParam.NameZoneConformity, true);
+  // Read nodal ratio sizes.
+  AddVectorOption(paramFile, "NODAL_RATIO", dsNodalRatioZone, DefaultParam.dsNodalRatioZone, true);
+  // Read whether a uniform grid is used or not.
+  AddBoolOption(paramFile, "UNIFORM_GRID_RESOLUTION", UniformGridResolution, DefaultParam.NameUniformGridResolution, true);
+
+
+  // Assign ZoneMarker.
+  MapTypeZone();
+  // Determine multizone strategy to use.
+  DetermineMultizoneStrategy();
+  // Check nodal ratio specified according to multizone strategy.
+  CheckdsNodalRatio();
+
+  // Process zone conformity option so the solver overwrites input number of
+  // nodes in the different zones so the grid remains consistent with ZONE_MAIN.
+  if( ZoneConformity ) ProcessZoneConformity();
+
   // Assign solver type. For now, use a EE only.
-  TypeSolver = SOLVER_EE;
+  TypeSolver.resize(nZone);
+  for(unsigned short iZone=0; iZone<nZone; iZone++)
+    TypeSolver[iZone] = SOLVER_EE;
 
    // Close file.
   paramFile.close();
@@ -492,9 +505,9 @@ void CConfig::MapTypeBufferLayer
 	std::map<std::string, unsigned short> Mapper;
 
   // Assign mapper according to its enum convention.
-  Mapper["NONE"]          = NO_LAYER;
-  Mapper["PML_XLAYERMIN"] = PML_XLAYERMIN;
-  Mapper["PML_XLAYERMAX"] = PML_XLAYERMAX;
+  Mapper["NONE"]   = NO_LAYER;
+  Mapper["PML"]    = PML_LAYER;
+  Mapper["SPONGE"] = SPONGE_LAYER;
 
   // Number of layers.
   unsigned short nBuffer = NameTypeBufferLayer.size();
@@ -522,5 +535,262 @@ void CConfig::MapTypeBufferLayer
 }
 
 
+void CConfig::MapTypeZone
+(
+ void
+)
+ /*
+	* Function that maps TypeZone to its enum type.
+	*/
+{
+	// Initialize actual mapped data.
+	TypeZone.resize(nZone);
+
+  // Initialize mapper.
+	std::map<std::string, unsigned short> Mapper;
+
+	// Assign mapper according to its enum convention.
+	Mapper["ZONE_MAIN"]     = ZONE_MAIN;
+	Mapper["ZONE_WEST"]     = ZONE_WEST;
+  Mapper["ZONE_EAST"]     = ZONE_EAST;
+  Mapper["ZONE_SOUTH"]    = ZONE_SOUTH;
+  Mapper["ZONE_NORTH"]    = ZONE_NORTH;
+  Mapper["ZONE_CORNER_0"] = ZONE_CORNER_0;
+  Mapper["ZONE_CORNER_1"] = ZONE_CORNER_1;
+  Mapper["ZONE_CORNER_2"] = ZONE_CORNER_2;
+  Mapper["ZONE_CORNER_3"] = ZONE_CORNER_3;
+
+  // Base zone name.
+  std::string basename = "ZONE_";
+
+	// Iterate of data.
+	for(int iZone=0; iZone<nZone; iZone++){
+
+    // Initialize to unknown.
+		TypeZone[iZone] = ZONE_UNKNOWN;
+
+		// Check if data abides by map convention.
+		try {
+			Mapper.at(NameZoneMarker[iZone]);
+		}
+		catch ( std::out_of_range& ) {
+			Terminate("CConfig::MapTypeZone", __FILE__, __LINE__,
+								"Zone names do not follow associated map convention!");
+		}
+		// Assign data according to dedicated enum.
+		TypeZone[iZone] = Mapper.at(NameZoneMarker[iZone]);
+	}
+
+	// Make sure input zone markers are unique.
+	for(unsigned short jZone=0; jZone<nZone; jZone++)
+		for(unsigned short iZone=jZone+1; iZone<nZone; iZone++)
+			if( TypeZone[jZone] == TypeZone[iZone] )
+				Terminate("CConfig::MapTypeZone", __FILE__, __LINE__,
+									"Zone markers must be unique!");
+}
+
+
+void CConfig::DetermineMultizoneStrategy
+(
+  void
+)
+ /*
+  * Function that determines what strategy for a multizone simulation to adopt.
+  */
+{
+  // Consistency check, input zone markers must be either 1, 2 or 9.
+  if( (nZone != 1) && (nZone != 2) && (nZone != 3) && (nZone != 9) )
+    Terminate("CConfig::DetermineMultizoneStrategy", __FILE__, __LINE__,
+              "Multizone strategy demands nZone be: 1, 2, 3 or 9.");
+
+  // To simplify things, make sure the first zone is always the main zone.
+  if( TypeZone[0] != ZONE_MAIN )
+    Terminate("CConfig::DetermineMultizoneStrategy", __FILE__, __LINE__,
+              "First input zone must be ZONE_MAIN.");
+
+  // Determine if this is strategy main.
+  if( nZone == 1 ){
+    // Assign multizone strategy.
+    MultizoneStrategy = MULTIZONE_STRATEGY_MAIN;
+    return;
+  }
+
+  // Determine if this is an full-zonal strategy.
+  if( nZone == 9 ){
+    // Assign multizone strategy.
+    MultizoneStrategy = MULTIZONE_STRATEGY_ALL;
+    // Make sure the element ratio input is correct.
+    if( (dsNodalRatioZone[0] <= 0.0) || (dsNodalRatioZone.size() != 4) )
+      Terminate("CConfig::DetermineMultizoneStrategy", __FILE__, __LINE__,
+                "ELEMENT_RATIO must be positive and: (r(w), r(e), r(s), r(n).");
+    return;
+   }
+
+   // Determine if this is either combination strategies. Note, the
+   // first zone is always fixed as the main one so no need to check for that.
+   if( nZone == 2 ){
+     switch( TypeZone[1] ){
+       case(ZONE_WEST):  MultizoneStrategy = MULTIZONE_STRATEGY_WEST;  break;
+       case(ZONE_EAST):  MultizoneStrategy = MULTIZONE_STRATEGY_EAST;  break;
+       case(ZONE_SOUTH): MultizoneStrategy = MULTIZONE_STRATEGY_SOUTH; break;
+       case(ZONE_NORTH): MultizoneStrategy = MULTIZONE_STRATEGY_NORTH; break;
+
+       default:
+         Terminate("CConfig::DetermineMultizoneStrategy", __FILE__, __LINE__,
+                   "Wrong second zone input, must be: WEST, EAST, SOUTH or NORTH.");
+     }
+
+     return;
+   }
+
+   // Determine if this is either combination strategies. Note, the first zone
+   // is always fixed as the main one so no need to check for that.
+   if( nZone == 3 ){
+
+     // Make sure all zones are unique.
+     if( TypeZone[1] == TypeZone[2] )
+      Terminate("CConfig::DetermineMultizoneStrategy", __FILE__, __LINE__,
+                "Second and third zone inputs must be unique.");
+
+     // Check type of second zone.
+     switch( TypeZone[1] ){
+
+       // Check horizonal layers.
+       case(ZONE_WEST): case(ZONE_EAST):
+       {
+         if( (TypeZone[2] == ZONE_WEST) || (TypeZone[2] == ZONE_EAST) )
+           MultizoneStrategy = MULTIZONE_STRATEGY_HORIZONAL;
+
+         break;
+       }
+
+       // Check vertical layers.
+       case(ZONE_SOUTH): case(ZONE_NORTH):
+       {
+         if( (TypeZone[2] == ZONE_SOUTH) || (TypeZone[2] == ZONE_NORTH) )
+           MultizoneStrategy = MULTIZONE_STRATEGY_VERTICAL;
+
+         break;
+       }
+
+       default:
+         Terminate("CConfig::DetermineMultizoneStrategy", __FILE__, __LINE__,
+                   "Wrong second/third zone input combinations, must be vertical or horizontal.");
+     }
+
+     return;
+   }
+}
+
+
+void CConfig::ProcessZoneConformity
+(
+  void
+)
+ /*
+  * Function that enforces the zone conformity if turned on.
+  */
+{
+  // In case this is a single zone, do nothing and return.
+  if( nZone == 1 ) return;
+
+  // Determine what multizone strategy is employed.
+  switch(MultizoneStrategy){
+
+    // Combination of east or west zones.
+    case(MULTIZONE_STRATEGY_EAST): case(MULTIZONE_STRATEGY_WEST):
+    nyNode[1] = nyNode[0]; break;
+
+    // Combination of south or north zones.
+    case(MULTIZONE_STRATEGY_SOUTH): case(MULTIZONE_STRATEGY_NORTH):
+    nxNode[1] = nxNode[0]; break;
+
+    // All zones are utilized.
+    case(MULTIZONE_STRATEGY_ALL):
+    {
+      // Consistency in naming check.
+      assert( TypeZone[0] == ZONE_MAIN );
+
+      for(unsigned short iZone=0; iZone<nZone; iZone++){
+        switch(TypeZone[iZone]){
+          case(ZONE_MAIN):  break;
+          case(ZONE_WEST):  case(ZONE_EAST):  nyNode[iZone] = nyNode[ZONE_MAIN]; break;
+          case(ZONE_SOUTH): case(ZONE_NORTH): nxNode[iZone] = nxNode[ZONE_MAIN]; break;
+          case(ZONE_CORNER_0):
+          {
+            nxNode[iZone] = nxNode[ZONE_WEST];
+            nyNode[iZone] = nyNode[ZONE_SOUTH];
+            break;
+          }
+          case(ZONE_CORNER_1):
+          {
+            nxNode[iZone] = nxNode[ZONE_EAST];
+            nyNode[iZone] = nyNode[ZONE_SOUTH];
+            break;
+          }
+          case(ZONE_CORNER_2):
+          {
+            nxNode[iZone] = nxNode[ZONE_WEST];
+            nyNode[iZone] = nyNode[ZONE_NORTH];
+            break;
+          }
+          case(ZONE_CORNER_3):
+          {
+            nxNode[iZone] = nxNode[ZONE_EAST];
+            nyNode[iZone] = nyNode[ZONE_NORTH];
+            break;
+          }
+        }
+      }
+
+      break;
+    }
+
+    // Horizontal zones only.
+    case(MULTIZONE_STRATEGY_HORIZONAL):
+    {
+      nyNode[1] = nyNode[0];
+      nyNode[2] = nyNode[0];
+      break;
+    }
+
+    // Vertical zones only.
+    case(MULTIZONE_STRATEGY_VERTICAL):
+    {
+      nxNode[1] = nxNode[0];
+      nxNode[2] = nxNode[0];
+      break;
+    }
+
+  }
+}
+
+
+void CConfig::dsNodalRatioZone
+(
+  void
+)
+ /*
+  * Function that checks for inconsistency errors in the nodal ratio
+  * specified, w.r.t. the multizone strategy employed.
+  */
+{
+  // In case this is a single-zone simulation, no need to check.
+  if( MultizoneStrategy == MULTIZONE_STRATEGY_MAIN ) return;
+
+  // Error flag.
+  bool ErrorDetected = false;
+
+  // If this is not a single-zone simulation, make sure all is consistent.
+  if( dsNodalRatioZone.size() != nFace ) ErrorDetected = true;
+  for(unsigned short i=0; i<nFace; i++)
+    if( dsNodalRatioZone[i] <= 0.0)
+      ErrorDetected = true;
+
+  // Report error and exit, in case detected.
+  if( ErrorDetected )
+    Terminate("CConfig::dsNodalRatioZone", __FILE__, __LINE__,
+              "NODAL_RATIO is inconsistent: must be positive and of size: 4");
+}
 
 

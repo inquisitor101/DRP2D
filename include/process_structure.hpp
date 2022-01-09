@@ -7,6 +7,7 @@
 #include "spatial_structure.hpp"
 #include "output_structure.hpp"
 #include "initial_structure.hpp"
+#include "stencil_structure.hpp"
 
 
 // Forward declaration to avoid compiler problems.
@@ -21,8 +22,10 @@ class CProcess {
              CGeometry     *geometry_container,
              COutput       *output_container,
              CInitial      *initial_container,
+             CStencil     **stencil_container,
              CSolver       *solver_container,
-             CSpatial      *spatial_container);
+             CSpatial      *spatial_container,
+             unsigned short iZone);
 
     // Destructor.
     virtual ~CProcess(void);
@@ -65,8 +68,10 @@ class CEEProcess : public CProcess {
                CGeometry     *geometry_container,
                COutput       *output_container,
                CInitial      *initial_container,
+               CStencil     **stencil_container,
                CSolver       *solver_container,
-               CSpatial      *spatial_container);
+               CSpatial      *spatial_container,
+               unsigned short iZone);
 
     // Destructor.
     ~CEEProcess(void) override;

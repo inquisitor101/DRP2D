@@ -4,14 +4,18 @@
 
 CSpatial::CSpatial
 (
- CConfig   *config_container,
- CGeometry *geometry_container,
- CInitial  *initial_container
+ CConfig       *config_container,
+ CGeometry     *geometry_container,
+ CInitial      *initial_container,
+ CStencil     **stencil_container,
+ unsigned short iZone
 )
  /*
 	* Constructor, used to initialize CSpatial.
 	*/
 {
+  // Extract current zone ID.
+  zoneID = iZone;
   // Extract number of nodes in x-direction.
   nxNode = config_container->GetnxNode();
   // Extract number of nodes in y-direction.
@@ -188,16 +192,20 @@ void CSpatial::InitializeStencilStrategy
 
 CEESpatial::CEESpatial
 (
- CConfig   *config_container,
- CGeometry *geometry_container,
- CInitial  *initial_container
+ CConfig       *config_container,
+ CGeometry     *geometry_container,
+ CInitial      *initial_container,
+ CStencil     **stencil_container,
+ unsigned short iZone
 )
 	:
 		CSpatial
 		(
 		 config_container,
 		 geometry_container,
-     initial_container
+     initial_container,
+     stencil_container,
+     iZone
 		)
  /*
 	* Constructor, used to initialize CEESpatial.

@@ -14,22 +14,12 @@ class CConfig {
 		// Destructor.
 		~CConfig(void);
 
-    // Getter: returns nxNode.
-    unsigned long GetnxNode(void)                              const {return nxNode;}
-    // Getter: returns nyNode.
-    unsigned long GetnyNode(void)                              const {return nyNode;}
-    // Getter: returns NStencil[iDim].
-    unsigned short GetnnStencil(unsigned short iDim)           const {return NStencil[iDim];}
-    // Getter: returns MStencil[iDim].
-    unsigned short GetmmStencil(unsigned short iDim)           const {return MStencil[iDim];}
-    // Getter: returns NxStencil.
-    unsigned short GetnxStencil(void)                          const {return NStencil[0];}
-    // Getter: returns MxStencil.
-    unsigned short GetmxStencil(void)                          const {return MStencil[0];}
-    // Getter: returns NyStencil.
-    unsigned short GetnyStencil(void)                          const {return NStencil[1];}
-    // Getter: returns MyStencil.
-    unsigned short GetmyStencil(void)                          const {return MStencil[1];}
+    // Getter: returns nZone.
+    unsigned short GetnZone(void)                              const {return nZone;}
+    // Getter: returns nxNode[iZone].
+    unsigned long GetnxNode(unsigned short iZone)              const {return nxNode[iZone];}
+    // Getter: returns nyNode[iZone].
+    unsigned long GetnyNode(unsigned short iZone)              const {return nyNode[iZone];}
     // Getter: returns SimulationTime[0].
 		as3double GetSimulationStartTime(void)                     const {return SimulationTime[0];}
 		// Getter: returns SimulationTime[1].
@@ -56,8 +46,8 @@ class CConfig {
     as3double GetDisturbanceRatio(void)                        const {return DisturbanceRatio;}
     // Getter: returns DisturbanceWidth.
     as3double GetDisturbanceWidth(void)                        const {return DisturbanceWidth;}
-    // Getter: returns TypeSolver.
-    unsigned short GetTypeSolver(void)                         const {return TypeSolver;}
+    // Getter: returns TypeSolver[iZone].
+    unsigned short GetTypeSolver(unsigned short iZone)         const {return TypeSolver[iZone];}
     // Getter: returns TypeIC.
     unsigned short GetTypeIC(void)                             const {return TypeIC;}
     // Getter: returns TypeTemporalScheme.
@@ -72,14 +62,28 @@ class CConfig {
     bool GetAdaptTime(void)                                    const {return AdaptTime;}
     // Getter: returns TypeStencil[iDim].
     unsigned short GetTypeStencil(unsigned short iDim)         const {return TypeStencil[iDim];}
-    // Getter: returns NodeBufferLayer.
-    const as3vector1d<unsigned long> &GetNodeBufferLayer(void) const {return NodeBufferLayer;}
+    // Getter: returns UniformGridResolution.
+    bool GetUniformGridResolution(void)                        const {return UniformGridResolution;}
+    // Getter: returns ZoneMarker, per input zone.
+    unsigned short GetTypeZone(unsigned short iZone)           const {return TypeZone[iZone];}
+    // Getter: returns dsNodalRatioZone.
+    const as3vector1d<as3double> GetdsNodalRatioZone(void)     const {return dsNodalRatioZone;}
 
 	private:
     // Default data parameters.
 		struct {
+      // Number of zones.
+      unsigned short nZone = 1;
+			// Zone marker.
+			as3vector1d<std::string> NameZoneMarker = { "ZONE_MAIN" };
+			// Markers.
+			as3vector1d<std::string> NameMarker = {};
 			// Restart solution or not.
 			std::string NameRestartSolution = "false";
+      // Ratio of nodal sizes in (WEST, EAST, SOUTH, NORTH).
+      as3vector1d<as3double> dsNodalRatioZone = { 1.0, 1.0, 1.0, 1.0 };
+      // Zone conformity w.r.t. ZONE_MAIN.
+      std::string NameZoneConformity = "true";
 			// Time step.
 			as3double TimeStep = -1.0;
 			// Maximum iterations in time.
@@ -102,8 +106,6 @@ class CConfig {
       as3vector1d<as3double> GridStretchingConstant = { 1.0 };
       // Grid-stretching exponent.
       as3vector1d<as3double> GridStretchingExponent = { 1.0 };
-      // Number of nodes per buffer layer.
-      as3vector1d<unsigned long> NodeBufferLayer = { 10 };
       // Free-stream Mach number.
       as3double MachInf = 0.5;
       // Flow angle in degrees (w.r.t. x-direction).
@@ -116,19 +118,34 @@ class CConfig {
       as3double DisturbanceWidth = 0.25;
       // Grid-stretching used.
       bool GridStretching = false;
+      // Uniform equidistant grid resolution or not.
+      std::string NameUniformGridResolution = "true";
 
 		} DefaultParam;
 
+    // Number of zones.
+    unsigned short nZone;
+    // Polynomial order of solution per zone.
+    as3vector1d<unsigned short> nPolySolZone;
+    // Multizone strategy used in the simulation.
+    unsigned short MultizoneStrategy;
 
-		// Number of physical nodes in x-direction.
-		unsigned long nxNode;
-		// Number of physical nodes in y-direction.
-		unsigned long nyNode;
+    // Zone markers, string name.
+    as3vector1d<std::string> NameZoneMarker;
+    // Zone type, enum values.
+    as3vector1d<unsigned short> TypeZone;
 
-    // Stencil size in backward-direction, w.r.t. grid orientation.
-    unsigned short NStencil[nDim];
-    // Stencil size in forward-direction, w.r.t. grid orientation.
-    unsigned short MStencil[nDim];
+		// Number of nodes in x-direction, per zone.
+		as3vector1d<unsigned long> nxNode;
+		// Number of nodes in y-direction, per zone.
+		as3vector1d<unsigned long> nyNode;
+
+    // Nodal ratio per extension of zone: (WEST, EAST, SOUTH, NORTH).
+    as3vector1d<as3double> dsNodalRatioZone;
+    // Use zone conformity between adjacent nodes on zone.
+    bool ZoneConformity;
+    // Uniform equidistant grid resolution or not.
+    bool UniformGridResolution;
 
     // Type of stencils used in eaech direction, string name.
     as3vector1d<std::string> NameTypeStencil;
@@ -139,7 +156,7 @@ class CConfig {
     // Convention: (WEST, EAST, SOUTH, NORTH).
     as3vector1d<as3double> DomainBound;
     // Type of solver per zone.
-    unsigned short TypeSolver;
+    as3vector1d<unsigned short> TypeSolver;
 
     // Type of buffer layer, string name.
     as3vector1d<std::string> NameTypeBufferLayer;
@@ -197,8 +214,6 @@ class CConfig {
     as3vector1d<as3double> DampingExponent;
     // Sponge-layer damping constant.
     as3vector1d<as3double> DampingConstant;
-    // Number of nodes per buffer layer.
-    as3vector1d<unsigned long> NodeBufferLayer;
 
     // Whether or not to use grid-stretching.
     bool GridStretching;
@@ -215,6 +230,8 @@ class CConfig {
     as3vector1d<unsigned short> TypeExternalBC;
 
 
+    // Function that maps TypeZone from string to enum.
+    void MapTypeZone(void);
     // Function that maps TemporalScheme from string to enum.
     void MapTemporalScheme(void);
     // Function that maps TypeIC from string to enum.
@@ -225,6 +242,15 @@ class CConfig {
     void MapTypeStencil(void);
     // Function that maps TypeBufferLayer from string to enum.
     void MapTypeBufferLayer(void);
+
+
+    // Function that determines the multizone strategy adopted.
+    void DetermineMultizoneStrategy(void);
+    // Function that checks the nodal ratios specified according
+    // to specified multizone strategy.
+    void CheckdsNodalRatio(void);
+    // Function that processes the zone conformity in the specified grids.
+    void ProcessZoneConformity(void);
 
 
     // Function that reads grid options.

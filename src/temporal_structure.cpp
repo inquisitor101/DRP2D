@@ -6,36 +6,16 @@ CTemporal::CTemporal
 (
  CConfig     *config_container,
  CGeometry   *geometry_container,
- CIteration  *iteration_container,
- CSolver     *solver_container,
- CSpatial    *spatial_container
+ CStencil  ***stencil_container,
+ CIteration **iteration_container,
+ CSolver    **solver_container,
+ CSpatial   **spatial_container
 )
  /*
 	* Constructor, used to initialize CTemporal.
 	*/
 {
-  // Extract number of nodes in x-direction.
-  nxNode = config_container->GetnxNode();
-  // Extract number of nodes in y-direction.
-  nyNode = config_container->GetnyNode();
-  // Total number of nodes in grid.
-  nNode  = geometry_container->GetnNode();
 
-  // Extract stencil widths, per dimension.
-  MxStencil = config_container->GetmxStencil();
-  NxStencil = config_container->GetnxStencil();
-  MyStencil = config_container->GetmyStencil();
-  NyStencil = config_container->GetnyStencil();
-
-  // Total nodes in x-diretcion.
-  nxTotal = nxNode + MxStencil + NxStencil;
-  // Total nodes in y-diretcion.
-  nyTotal = nyNode + MyStencil + NyStencil;
-
-  // Initialize working array parameter dimensions.
-  InitializeWorkArrayDimension(config_container);
-  // Reserve needed memory for the working array.
-  InitializeWorkArray();
 }
 
 
@@ -47,64 +27,7 @@ CTemporal::~CTemporal
 	* Destructor for CTemporal class, frees allocated memory.
 	*/
 {
-  for(unsigned short i=0; i<work_array.size(); i++)
-    if( work_array[i] ) delete [] work_array[i];
-}
 
-
-void CTemporal::InitializeWorkArrayDimension
-(
- CConfig *config_container
-)
- /*
-  * Function that defines the dimension parameters used in the working array.
-  */
-{
-  // Modified (inclusive ghost nodes) nodal dimension in x-direction.
-  unsigned long nx  = nxNode + MxStencil + NxStencil;
-  // Modified (inclusive ghost nodes) nodal dimension in y-direction.
-  unsigned long ny  = nyNode + MyStencil + NyStencil;
-  // Number of grid DOFs for each data value, including periodic ghost nodes.
-  nWorkingArrayDOFs = nx*ny;
-  // Number of variables per each working array entry.
-  nWorkingArrayVar  = nVar;
-
-  // Determine number of entries needed for the working array.
-  // Entries: 2,
-  // [0]: x-flux pre-computation.
-  // [1]: y-flux pre-computation.
-  nWorkingArrayEntry = 2;
-}
-
-
-void CTemporal::InitializeWorkArray
-(
- void
-)
- /*
-  * Function that reserves and initializes the required memory for a work array.
-  */
-{
-  // Total number of data needed for 1st/outer index in the working array.
-  const unsigned short nDataOuter = nWorkingArrayEntry*nWorkingArrayVar;
-  // Total number of data needed for 2nd/inner index in the working array.
-  const unsigned long  nDataInner = nWorkingArrayDOFs;
-
-  // Initialize the work array needed to carry out a residual update over an
-  // entire grid sweep iteration.
-  work_array.resize(nDataOuter, nullptr);
-
-  // Allocate data per every entry of the working array.
-  for(unsigned short i=0; i<work_array.size(); i++){
-
-    // Allocate the actual memory.
-    work_array[i] = new as3double[nDataInner]();
-
-    // Check if allocation failed.
-    if( !work_array[i] )
-      Terminate("CTemporal::InitializeWorkArray", __FILE__, __LINE__,
-                "Allocation failed for work_array.");
-  }
 }
 
 
@@ -112,15 +35,17 @@ CLSRK4Temporal::CLSRK4Temporal
 (
  CConfig     *config_container,
  CGeometry   *geometry_container,
- CIteration  *iteration_container,
- CSolver     *solver_container,
- CSpatial    *spatial_container
+ CStencil  ***stencil_container,
+ CIteration **iteration_container,
+ CSolver    **solver_container,
+ CSpatial   **spatial_container
 )
 	:
 		CTemporal
 		(
 		 config_container,
 		 geometry_container,
+     stencil_container,
 		 iteration_container,
 		 solver_container,
 		 spatial_container
@@ -350,15 +275,17 @@ CSSPRK3Temporal::CSSPRK3Temporal
 (
  CConfig     *config_container,
  CGeometry   *geometry_container,
- CIteration  *iteration_container,
- CSolver     *solver_container,
- CSpatial    *spatial_container
+ CStencil  ***stencil_container,
+ CIteration **iteration_container,
+ CSolver    **solver_container,
+ CSpatial   **spatial_container
 )
 	:
 		CTemporal
 		(
 		 config_container,
 		 geometry_container,
+     stencil_container,
 		 iteration_container,
 		 solver_container,
 		 spatial_container

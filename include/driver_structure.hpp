@@ -11,6 +11,7 @@
 #include "initial_structure.hpp"
 #include "input_structure.hpp"
 #include "process_structure.hpp"
+#include "stencil_structure.hpp"
 
 
 
@@ -26,7 +27,23 @@ class CDriver {
 		// Function that starts the solver.
 		void StartSolver(void);
 
+	protected:
+		// Containers needed to drive the solver.
+		CConfig 		 *config_container;
+		CGeometry    *geometry_container;
+		CInput       *input_container;
+		COutput      *output_container;
+		CTemporal    *temporal_container;
+		CIteration  **iteration_container;
+		CSolver     **solver_container;
+		CInitial    **initial_container;
+		CSpatial    **spatial_container;
+    CProcess    **process_container;
+    CStencil   ***stencil_container;
 
+	private:
+    // Number of zones.
+    unsigned short nZone;
 		// Simulation start time.
 		as3double SimTimeStart;
 		// Simulation final time.
@@ -34,25 +51,15 @@ class CDriver {
 		// Maximum temporal iterations.
 		unsigned long MaxTimeIter;
 
-	protected:
-		// Containers needed to drive the solver.
-		CConfig 		*config_container;
-		CGeometry   *geometry_container;
-		CInput      *input_container;
-		COutput     *output_container;
-		CTemporal   *temporal_container;
-		CIteration  *iteration_container;
-		CSolver     *solver_container;
-		CInitial    *initial_container;
-		CSpatial    *spatial_container;
-    CProcess    *process_container;
-
-	private:
 		// Function that initializes all containers to nullptr.
 		void SetContainers_Null(void);
 
 		// Function that preprocesses the geometry container.
 		void Geometry_Preprocessing(CConfig *config_container);
+
+    // Function that preprocesses the stencil container.
+    void Stencil_Preprocessing(CConfig   *config_container,
+    													 CGeometry *geometry_container);
 
 		// Function that preprocesses the input container.
 		void Input_Preprocessing(CConfig   *config_container,
@@ -67,36 +74,41 @@ class CDriver {
 															 CGeometry *geometry_container);
 
 		// Function that preprocesses the spatial container.
-		void Spatial_Preprocessing(CConfig   *config_container,
-															 CGeometry *geometry_container,
-                               CInitial  *initial_container);
+		void Spatial_Preprocessing(CConfig    *config_container,
+															 CGeometry  *geometry_container,
+                               CInitial  **initial_container,
+                               CStencil ***stencil_container);
 
 		// Function that preprocesses the solver container.
-		void Solver_Preprocessing(CConfig 	*config_container,
-															CGeometry *geometry_container,
-                              CInitial  *initial_container,
-															CSpatial  *spatial_container);
+		void Solver_Preprocessing(CConfig 	 *config_container,
+															CGeometry  *geometry_container,
+                              CInitial  **initial_container,
+                              CStencil ***stencil_container,
+															CSpatial  **spatial_container);
 
 		// Function that preprocesses the iteration container.
-		void Iteration_Preprocessing(CConfig   *config_container,
-																 CGeometry *geometry_container,
-																 CSolver   *solver_container,
-																 CSpatial  *spatial_container);
+		void Iteration_Preprocessing(CConfig    *config_container,
+																 CGeometry  *geometry_container,
+                                 CStencil ***stencil_container,
+																 CSolver   **solver_container,
+																 CSpatial  **spatial_container);
 
 		// Function that preprocesses the temporal container.
-		void Temporal_Preprocessing(CConfig    *config_container,
-																CGeometry  *geometry_container,
-																CIteration *iteration_container,
-																CSolver    *solver_container,
-																CSpatial   *spatial_container);
+		void Temporal_Preprocessing(CConfig     *config_container,
+																CGeometry   *geometry_container,
+                                CStencil  ***stencil_container,
+																CIteration **iteration_container,
+																CSolver    **solver_container,
+																CSpatial   **spatial_container);
 
     // Function that preprocesses the process container.
-    void Process_Preprocessing(CConfig   *config_container,
-															 CGeometry *geometry_container,
-                               COutput   *output_container,
-                               CInitial  *initial_container,
-                               CSolver   *solver_container,
-															 CSpatial  *spatial_container);
+    void Process_Preprocessing(CConfig    *config_container,
+															 CGeometry  *geometry_container,
+                               COutput    *output_container,
+                               CInitial  **initial_container,
+                               CStencil ***stencil_container,
+                               CSolver   **solver_container,
+															 CSpatial  **spatial_container);
 
     // Function that preprocesses the parallelization set-up.
     void Parallelization_Preprocessing(void);

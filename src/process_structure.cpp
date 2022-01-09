@@ -4,12 +4,14 @@
 
 CProcess::CProcess
 (
-  CConfig       *config_container,
-  CGeometry     *geometry_container,
-  COutput       *output_container,
-  CInitial      *initial_container,
-  CSolver       *solver_container,
-  CSpatial      *spatial_container
+ CConfig       *config_container,
+ CGeometry     *geometry_container,
+ COutput       *output_container,
+ CInitial      *initial_container,
+ CStencil     **stencil_container,
+ CSolver       *solver_container,
+ CSpatial      *spatial_container,
+ unsigned short iZone
 )
  /*
   * Constructor, used to initialize CProcess.
@@ -48,12 +50,14 @@ void CProcess::FilterSolution
 
 CEEProcess::CEEProcess
 (
- CConfig   *config_container,
- CGeometry *geometry_container,
- COutput   *output_container,
- CInitial  *initial_container,
- CSolver   *solver_container,
- CSpatial  *spatial_container
+ CConfig       *config_container,
+ CGeometry     *geometry_container,
+ COutput       *output_container,
+ CInitial      *initial_container,
+ CStencil     **stencil_container,
+ CSolver       *solver_container,
+ CSpatial      *spatial_container,
+ unsigned short iZone
 )
   :
     CProcess
@@ -62,8 +66,10 @@ CEEProcess::CEEProcess
       geometry_container,
       output_container,
       initial_container,
+      stencil_container,
       solver_container,
-      spatial_container
+      spatial_container,
+      iZone
     )
  /*
   * Constructor, used to initialize CEEProcess.

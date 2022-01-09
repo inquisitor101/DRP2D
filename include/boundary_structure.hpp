@@ -3,6 +3,7 @@
 #include "option_structure.hpp"
 #include "config_structure.hpp"
 #include "geometry_structure.hpp"
+#include "stencil_structure.hpp"
 
 
 
@@ -12,6 +13,7 @@ class CBoundary {
 		// Constructor.
 		CBoundary(CConfig       *config_container,
 							CGeometry     *geometry_container,
+              CStencil     **stencil_container,
 							unsigned short iBoundary);
 
 		// Destructor.
@@ -39,6 +41,7 @@ class CEEBoundary : public CBoundary {
 		// Constructor.
 		CEEBoundary(CConfig       *config_container,
 								CGeometry     *geometry_container,
+                CStencil     **stencil_container,
 								unsigned short iBoundary);
 
 		// Destructor.
@@ -57,6 +60,7 @@ class CEEInterfaceBoundary : public CEEBoundary {
 		// Constructor.
 		CEEInterfaceBoundary(CConfig       *config_container,
 												 CGeometry     *geometry_container,
+                         CStencil     **stencil_container,
 												 unsigned short iBoundary);
 
 		// Destructor.

@@ -6,6 +6,7 @@
 #include "spatial_structure.hpp"
 #include "initial_structure.hpp"
 #include "boundary_structure.hpp"
+#include "stencil_structure.hpp"
 
 
 
@@ -13,10 +14,12 @@ class CSolver {
 
 	public:
 		// Constructor.
-		CSolver(CConfig   *config_container,
-						CGeometry *geometry_container,
-            CInitial  *initial_container,
-						CSpatial  *spatial_container);
+		CSolver(CConfig       *config_container,
+						CGeometry     *geometry_container,
+            CInitial      *initial_container,
+            CStencil     **stencil_container,
+						CSpatial      *spatial_container,
+            unsigned short iZone);
 
 		// Destructor.
 		virtual ~CSolver(void);
@@ -40,8 +43,6 @@ class CSolver {
     CBoundary *GetBoundaryContainer(unsigned short iBoundary) const {return boundary_container[iBoundary];}
 
 	protected:
-    // Total number of nodes.
-    unsigned long nNode;
     // Number of boundary conditions in this zone.
     unsigned short nBoundary;
 
@@ -60,7 +61,8 @@ class CSolver {
     // Function used to initialize the boundary container.
     void Boundary_Preprocessing(CConfig   *config_container,
     														CGeometry *geometry_container,
-                                CInitial  *initial_container);
+                                CInitial  *initial_container,
+                                CStencil **stencil_container);
 };
 
 
@@ -68,10 +70,12 @@ class CEESolver : public CSolver {
 
 	public:
 		// Constructor.
-		CEESolver(CConfig   *config_container,
-							CGeometry *geometry_container,
-              CInitial  *initial_container,
-							CSpatial  *spatial_container);
+		CEESolver(CConfig       *config_container,
+  						CGeometry     *geometry_container,
+              CInitial      *initial_container,
+              CStencil     **stencil_container,
+  						CSpatial      *spatial_container,
+              unsigned short iZone);
 
 		// Destructor.
 		~CEESolver(void) final;

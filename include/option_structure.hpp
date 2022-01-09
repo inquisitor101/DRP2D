@@ -176,9 +176,9 @@ enum FILTERING_TYPE {
 
 // Enumerated type of buffer layer.
 enum BUFFER_LAYER_TYPE {
-  NO_LAYER       = 0, // No layer.
-  PML_XLAYERMIN  = 1, // PML layer in west x-direction.
-  PML_XLAYERMAX  = 2, // PML layer in east x-direction.
+  NO_LAYER                = 0, // No layer.
+  PML_LAYER               = 1, // PML layer.
+  SPONGE_LAYER            = 2  // sponge layer.
 };
 
 // Enumerated type of boundary condition.
@@ -193,6 +193,46 @@ enum BOUNDARY_CONDITION_TYPE {
   BC_STATIC_OUTLET     = 6,  // static-condition subsonic outlet.
   BC_SUPERSONIC_OUTLET = 7,  // supersonic outlet.
   BC_SUPERSONIC_INLET  = 8   // supersonic inlet.
+};
+
+// Enumerated type of multizone strategies.
+enum MULTIZONE_STRATEGY_TYPE {
+  MULTIZONE_STRATEGY_MAIN      = 0, // only zone 0 is used.
+  MULTIZONE_STRATEGY_WEST      = 1, // use only zone: 0 and 1.
+  MULTIZONE_STRATEGY_EAST      = 2, // use only zone: 0 and 2.
+  MULTIZONE_STRATEGY_SOUTH     = 3, // use only zone: 0 and 3.
+  MULTIZONE_STRATEGY_NORTH     = 4, // use only zone: 0 and 4.
+  MULTIZONE_STRATEGY_ALL       = 5, // uses all zones: 0 to 8.
+  MULTIZONE_STRATEGY_HORIZONAL = 6, // uses zones: 0, 1 and 2.
+  MULTIZONE_STRATEGY_VERTICAL  = 7  // uses zones: 0, 3 and 4.
+};
+
+// Enumerated type of zones.
+enum ZONE_TYPE {
+  ZONE_UNKNOWN  = 99, // unknown zone.
+	ZONE_MAIN     = 0,  // zone corresponding to physical region
+	ZONE_WEST     = 1,  // zone PML corresponding to west
+	ZONE_EAST     = 2,  // zone PML corresponding to east
+	ZONE_SOUTH    = 3,  // zone PML corresponding to south
+	ZONE_NORTH    = 4,  // zone PML corresponding to north
+	ZONE_CORNER_0 = 5,  // zone PML corresponding to SW-corner C0
+	ZONE_CORNER_1 = 6,  // zone PML corresponding to SE-corner C1
+	ZONE_CORNER_2 = 7,  // zone PML corresponding to NW-corner C2
+	ZONE_CORNER_3 = 8   // zone PML corresponding to NE-corner C3
+};
+
+// Enumerated type of 3-zone horizontal strategy.
+enum HORIZONTAL_ZONE_TYPE {
+  HORIZONTAL_ZONE_MAIN = 0, // zone corresponding to physical region.
+  HORIZONTAL_ZONE_WEST = 1, // zone corresponding to west.
+  HORIZONTAL_ZONE_EAST = 2  // zone corresponding to east.
+};
+
+// Enumerated type of 3-zone vertical strategy.
+enum VERTICAL_ZONE_TYPE {
+  VERTICAL_ZONE_MAIN  = 0, // zone corresponding to physical region.
+  VERTICAL_ZONE_SOUTH = 1, // zone corresponding to south.
+  VERTICAL_ZONE_NORTH = 2  // zone corresponding to north.
 };
 
 // Enumerated type of finite-difference first-order stencils.

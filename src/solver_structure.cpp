@@ -5,24 +5,25 @@
 
 CSolver::CSolver
 (
- CConfig   *config_container,
- CGeometry *geometry_container,
- CInitial  *initial_container,
- CSpatial  *spatial_container
+ CConfig       *config_container,
+ CGeometry     *geometry_container,
+ CInitial      *initial_container,
+ CStencil     **stencil_container,
+ CSpatial      *spatial_container,
+ unsigned short iZone
 )
  /*
 	* Constructor, used to initialize CSolver in zone: iZone.
 	*/
 {
-  // Total number of nodes.
-  nNode     = geometry_container->GetnNode();
   // Number of boundaries in this zone. Note, this is always fixed as 4.
 	nBoundary = nFace;
 
   // Initialize boundary data container.
   Boundary_Preprocessing(config_container,
                          geometry_container,
-                         initial_container);
+                         initial_container,
+                         stencil_container);
 }
 
 
@@ -43,7 +44,8 @@ void CSolver::Boundary_Preprocessing
 (
  CConfig   *config_container,
  CGeometry *geometry_container,
- CInitial  *initial_container
+ CInitial  *initial_container,
+ CStencil **stencil_container
 )
  /*
 	* Function that preprocess the boundary container and initialize it.
@@ -73,10 +75,10 @@ void CSolver::Boundary_Preprocessing
           // Pure EE interface boundary.
           case( SOLVER_EE ):
           {
-
             // Initialize interface/periodic boundary.
             boundary_container[iBoundary] = new CEEInterfaceBoundary(config_container,
                                                                      geometry_container,
+                                                                     stencil_container,
                                                                      iBoundary);
             break;
           }
@@ -103,23 +105,40 @@ void CSolver::Boundary_Preprocessing
 
 CEESolver::CEESolver
 (
- CConfig   *config_container,
- CGeometry *geometry_container,
- CInitial  *initial_container,
- CSpatial  *spatial_container
+ CConfig       *config_container,
+ CGeometry     *geometry_container,
+ CInitial      *initial_container,
+ CStencil     **stencil_container,
+ CSpatial      *spatial_container,
+ unsigned short iZone
 )
 	:
 		CSolver
 		(
 		 config_container,
 		 geometry_container,
+     stencil_container,
      initial_container,
 		 spatial_container
+     iZone
 		)
  /*
 	* Constructor, used to initialize CEESolver in zone: iZone.
 	*/
 {
+  // Overall number of nodes in x-direction with ghost nodes.
+  unsigned long nxNodeTotal = geometry_container->GetnxNode()
+                            + stencil_container[0]->GetNNStencil()
+                            + stencil_container[0]->GetMMStencil();
+
+  // Overall number of nodes in y-direction with ghost nodes.
+  unsigned long nyNodeTotal = geometry_container->GetnyNode()
+                            + stencil_container[1]->GetNNStencil()
+                            + stencil_container[1]->GetMMStencil();
+
+  // Total number of nodes, including ghost nodes.
+  unsigned long nNodeTotal = nxNodeTotal*nyNodeTotal;
+
   // Reserve memory for data.
   DataSolution.resize(nVar, nullptr);
   DataResidual.resize(nVar, nullptr);
@@ -128,8 +147,8 @@ CEESolver::CEESolver
   for(unsigned short iVar=0; iVar<nVar; iVar++){
 
     // Allocate actual memory.
-    DataSolution[iVar] = new as3double[nNode]();
-    DataResidual[iVar] = new as3double[nNode]();
+    DataSolution[iVar] = new as3double[nNodeTotal]();
+    DataResidual[iVar] = new as3double[nNodeTotal]();
 
     // Check if allocation failed.
     if( !DataSolution[iVar] || !DataResidual[iVar] )
