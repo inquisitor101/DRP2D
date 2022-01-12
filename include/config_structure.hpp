@@ -72,6 +72,12 @@ class CConfig {
     bool GetAdaptTime(void)                                    const {return AdaptTime;}
     // Getter: returns TypeStencil[iDim].
     unsigned short GetTypeStencil(unsigned short iDim)         const {return TypeStencil[iDim];}
+    // Getter: returns xBufferInterface.
+    as3double GetxBufferInterface(void)                        const {return xBufferInterface;}
+    // Getter: returns DampingConstant.
+    as3double GetDampingConstant(void)                         const {return DampingConstant;}
+    // Getter: returns DampingExponent.
+    as3double GetDampingExponent(void)                         const {return DampingExponent;}
 
 	private:
     // Default data parameters.
@@ -134,7 +140,8 @@ class CConfig {
     as3vector1d<as3double> DomainBound;
     // Type of solver per zone.
     unsigned short TypeSolver;
-
+    // Location of buffer-layer starting x-coordinate.
+    as3double xBufferInterface;
 
     // Decide whether or not to restart a simulation.
     bool RestartSolution;

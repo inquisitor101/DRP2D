@@ -15,11 +15,13 @@ CTemporal::CTemporal
 	*/
 {
   // Extract number of nodes in x-direction.
-  nxNode = config_container->GetnxNode();
+  nxNode      = config_container->GetnxNode();
   // Extract number of nodes in y-direction.
-  nyNode = config_container->GetnyNode();
+  nyNode      = config_container->GetnyNode();
   // Total number of nodes in grid.
-  nNode  = geometry_container->GetnNode();
+  nNode       = geometry_container->GetnNode();
+  // Total number of nodes in buffer layer.
+  nNodeBuffer = geometry_container->GetnNodeBuffer();
 
   // Extract stencil widths, per dimension.
   MxStencil = config_container->GetmxStencil();
@@ -153,7 +155,7 @@ CLSRK4Temporal::CLSRK4Temporal
 	rk4c[3] =  2006345519317.0/3224310063776.0;
 	rk4c[4] =  2802321613138.0/2924317926251.0;
 
-  // Reserve memory for tentative data.
+  // Reserve memory for tentative physical data.
   DataSolutionTentative.resize(nVar, nullptr);
 
   // Allocate in every variable.
@@ -166,6 +168,22 @@ CLSRK4Temporal::CLSRK4Temporal
     if( !DataSolutionTentative[iVar] )
       Terminate("CLSRK4Temporal::CLSRK4Temporal", __FILE__, __LINE__,
                 "Allocation failed for DataSolutionTentative.");
+  }
+
+
+  // Reserve memory for tentative auxiliary data.
+  DataSolutionTentativeAux.resize(nVar, nullptr);
+
+  // Allocate in every variable.
+  for(unsigned short iVar=0; iVar<nVar; iVar++){
+
+    // Allocate actual memory.
+    DataSolutionTentativeAux[iVar] = new as3double[nNodeBuffer]();
+
+    // Check if allocation failed.
+    if( !DataSolutionTentativeAux[iVar] )
+      Terminate("CLSRK4Temporal::CLSRK4Temporal", __FILE__, __LINE__,
+                "Allocation failed for DataSolutionTentativeAux.");
   }
 }
 
@@ -180,6 +198,9 @@ CLSRK4Temporal::~CLSRK4Temporal
 {
   for(unsigned short i=0; i<DataSolutionTentative.size(); i++)
     if( DataSolutionTentative[i] ) delete [] DataSolutionTentative[i];
+
+  for(unsigned short i=0; i<DataSolutionTentativeAux.size(); i++)
+    if( DataSolutionTentativeAux[i] ) delete [] DataSolutionTentativeAux[i];
 }
 
 
@@ -245,15 +266,20 @@ void CLSRK4Temporal::UpdateTime
   // Initialize max of the Mach number squared.
   as3double M2max = 0.0;
 
-  // Extract current total solution.
-  auto& sol = solver_container->GetDataSolution();
-  // Extract current total residual.
-  auto& res = solver_container->GetDataResidual();
-  // Extract tentative solution.
-  auto& tmp = DataSolutionTentative;
+  // Extract current physical  solution.
+  auto& sol     = solver_container->GetDataSolution();
+  // Extract current auxiliary solution.
+  auto& aux     = solver_container->GetDataSolutionAux();
+  // Extract current physical  residual.
+  auto& res_sol = solver_container->GetDataResidual();
+  // Extract current auxiliary residual.
+  auto& res_aux = solver_container->GetDataResidualAux();
 
-  // Total solution size in first dimension.
-  unsigned short nSolSize = sol.size();
+  // Extract tentative physical  solution.
+  auto& tmp_sol = DataSolutionTentative;
+  // Extract tentative auxiliary solution.
+  auto& tmp_aux = DataSolutionTentativeAux;
+
 
   // Initiate OpenMP parallel region, if specified.
 #ifdef HAVE_OPENMP
@@ -266,7 +292,7 @@ void CLSRK4Temporal::UpdateTime
 #pragma omp for schedule(static), collapse(3)
 #endif
     // Loop over every variable and every node.
-    for(unsigned short iVar=0; iVar<nSolSize; iVar++){
+    for(unsigned short iVar=0; iVar<nVar; iVar++){
       for(unsigned long j=0; j<nyNode; j++){
         for(unsigned long i=0; i<nxNode; i++){
           // Ghost node index.
@@ -318,7 +344,9 @@ void CLSRK4Temporal::UpdateTime
                                      spatial_container,
                                      initial_container,
                                      work_array,
-                                     res,
+                                     aux,
+                                     res_sol,
+                                     res_aux,
                                      localTime,
                                      MonitoringData);
 
@@ -326,18 +354,40 @@ void CLSRK4Temporal::UpdateTime
   M2max = MonitoringData[0];
 
 
-  // Loop over all nodes and update the solution.
+  // Initiate OpenMP parallel region, if specified.
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static), collapse(2)
+#pragma omp parallel
 #endif
-  // Loop over every variable and node.
-  for(unsigned short iVar=0; iVar<nSolSize; iVar++){
-    for(unsigned long l=0; l<nNode; l++){
-      // Predictor step, update the tentative solution.
-      tmp[iVar][l]  = alpha*tmp[iVar][l] + dtTime*res[iVar][l];
-      // Corrector step, update the true solution.
-      sol[iVar][l] += beta*tmp[iVar][l];
+  {
+
+    // Loop over all nodes and update the physical solution.
+#ifdef HAVE_OPENMP
+#pragma omp for schedule(static), collapse(2)
+#endif
+    // Loop over every variable and node.
+    for(unsigned short iVar=0; iVar<nVar; iVar++){
+      for(unsigned long l=0; l<nNode; l++){
+        // Predictor step, update the tentative physical solution.
+        tmp_sol[iVar][l] = alpha*tmp_sol[iVar][l] + dtTime*res_sol[iVar][l];
+        // Corrector step, update the true physical solution.
+        sol[iVar][l]    += beta*tmp_sol[iVar][l];
+      }
     }
+
+    // Loop over all nodes and update the auxiliary solution.
+#ifdef HAVE_OPENMP
+#pragma omp for schedule(static), collapse(2)
+#endif
+    // Loop over every variable and node.
+    for(unsigned short iVar=0; iVar<nVar; iVar++){
+      for(unsigned long l=0; l<nNodeBuffer; l++){
+        // Predictor step, update the tentative auxiliary solution.
+        tmp_aux[iVar][l] = alpha*tmp_aux[iVar][l] + dtTime*res_aux[iVar][l];
+        // Corrector step, update the true auxiliary solution.
+        aux[iVar][l]    += beta*tmp_aux[iVar][l];
+      }
+    }
+
   } // End of OpenMP parallel region.
 
 

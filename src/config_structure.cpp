@@ -136,6 +136,8 @@ bool CConfig::ReadGridOptions
 
   // Read domain bounds in each zone.
 	AddVectorOption(paramFile, "DOMAIN_BOUND", DomainBound, true);
+  // Read buffer layer starting location in x-direction.
+  AddScalarOption(paramFile, "BUFFER_INTERFACE_X", xBufferInterface, true);
 
   // Assign solver type. For now, use a EE only.
   TypeSolver = SOLVER_EE;

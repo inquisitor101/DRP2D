@@ -225,8 +225,10 @@ void CEESpatial::ComputeResidual
  CGeometry              *geometry_container,
  CSpatial               *spatial_container,
  CInitial               *initial_container,
- as3data1d<as3double>   &work_array,
- as3data1d<as3double>   &residual,
+ as3data1d<as3double>   &sol,
+ as3data1d<as3double>   &aux,
+ as3data1d<as3double>   &res_sol,
+ as3data1d<as3double>   &res_aux,
  as3double               localTime,
  as3vector1d<as3double> &MonitoringData
 )
@@ -251,9 +253,22 @@ void CEESpatial::ComputeResidual
   unsigned long I0 = NxStencil, I1 = I0 + nxNode;
   unsigned long J0 = NyStencil, J1 = J0 + nyNode;
 
+  // Extract dispersion-relation coefficient.
+  const as3double beta     = initial_container->GetBetaPML();
+  // Extract damping function in x-direction.
+  const auto& sigmax       = geometry_container->GetDampingFunctionXDir();
+  // Extract x-flux in terms of pseudo-mean flow.
+  const auto Fxpseudo      = initial_container->GetFxpseudo();
+  // Extract buffer layer i-indices.
+  const auto& IBufferLayer = geometry_container->GetIBufferLayer();
+
+  // Compute x-derivative approximation based on the pseudo-mean flow.
+  as3vector1d<as3double> dFpseudodx(nVar, 0.0);
+  for(unsigned short iVar=0; iVar<nVar; iVar++) for(auto k=0; k<nxs; k++) dFpseudodx[iVar] += cx[k]*Fxpseudo[iVar];
+
   // Assign the pointers for the working solution of the fluxes.
   // Note, the working array is in the same address as the x-flux.
-  as3double **dVarDx = work_array.data();
+  as3double **dVarDx = sol.data();
   as3double **dVarDy = dVarDx + nVar;
 
 
@@ -274,10 +289,10 @@ void CEESpatial::ComputeResidual
       unsigned long l = RequiredIndices[k];
 
       // Copy conservative data.
-      const as3double rho  = work_array[0][l];
-      const as3double rhou = work_array[1][l];
-      const as3double rhov = work_array[2][l];
-      const as3double rhoE = work_array[3][l];
+      const as3double rho  = sol[0][l];
+      const as3double rhou = sol[1][l];
+      const as3double rhov = sol[2][l];
+      const as3double rhoE = sol[3][l];
 
       // Compute primitive variables.
       const as3double ovrho = 1.0/rho;
@@ -309,7 +324,7 @@ void CEESpatial::ComputeResidual
     }
 
 
-    // Compute the residual.
+    // Compute the physical residual.
 #ifdef HAVE_OPENMP
 #pragma omp for schedule(static), collapse(3)
 #endif
@@ -323,20 +338,55 @@ void CEESpatial::ComputeResidual
 
           // Compute x-derivative approximation.
           as3double tmpx = 0.0;
+#pragma omp simd
           for(auto k=0; k<nxs; k++) tmpx -= cx[k]*dVarDx[iVar][ ij + is[k] ];
 
           // Compute y-derivative approximation.
           as3double tmpy = 0.0;
+#pragma omp simd
           for(auto k=0; k<nys; k++) tmpy -= cy[k]*dVarDy[iVar][ ij +js[k]*nxTotal ];
 
           // Deduce 1D running index.
           unsigned long l = (j-NyStencil)*nxNode + (i-NxStencil);
 
-          // Add the contrinution to the residual.
-          residual[iVar][l] = tmpx + tmpy;
+          // Add the contrinution to the physical residual.
+          res_sol[iVar][l] = tmpx + tmpy;
+        }
+      }
+    }
 
-          // Deduce the 1D running index.
-          l++;
+
+    // Compute residuals in the buffer layer.
+#ifdef HAVE_OPENMP
+#pragma omp for schedule(static), collapse(3)
+#endif
+    // Loop over all nodes and variables and update both residuals.
+    for(unsigned short iVar=0; iVar<nVar; iVar++){
+      for(unsigned long j=J0; j<J1; j++){
+        for(unsigned long i : IBufferLayer){
+
+          // Equivalent 1D running node index in extended grid.
+          const unsigned long ij = j*nxTotal + (i+NxStencil);
+          // Deduce 1D running index in physical grid.
+          const unsigned long lp = (j-NyStencil)*nxNode + i;
+          // Nodal indices for i- and j-direction w.r.t. buffer grid.
+          const unsigned long ib = i-IBufferLayer[0];
+          const unsigned long jb = j-NyStencil;
+          // Obtain current map index of buffer node.
+          const unsigned long lb = jb*IBufferLayer.size() + ib;
+
+          // Compute x-derivative approximation.
+          as3double tmpx = dFpseudodx[iVar];
+#pragma omp simd
+          for(auto k=0; k<nxs; k++) tmpx -= cx[k]*dVarDx[iVar][ ij + is[k] ];
+
+          // Extract current damping function.
+          const as3double spml = -sigmax[ib]*( aux[iVar][lb] + beta*(dVarDx[iVar][ij] - Fxpseudo[iVar]) );
+
+          // Add the contrinution to the physical  residual.
+          res_sol[iVar][lp] += spml;
+          // Add the contribution to the auxiliary residual.
+          res_aux[iVar][lb]  = spml + tmpx;
         }
       }
     }

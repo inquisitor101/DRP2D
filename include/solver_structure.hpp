@@ -36,12 +36,18 @@ class CSolver {
     as3data1d<as3double> &GetDataSolution(void)                     {return DataSolution;}
     // Getter: returns DataResidual.
     as3data1d<as3double> &GetDataResidual(void)                     {return DataResidual;}
+    // Getter: returns DataSolutionAux.
+    as3data1d<as3double> &GetDataSolutionAux(void)                  {return DataSolutionAux;}
+    // Getter: returns DataResidualAux.
+    as3data1d<as3double> &GetDataResidualAux(void)                  {return DataResidualAux;}
     // Getter: returns boundary_container[iBoundary].
     CBoundary *GetBoundaryContainer(unsigned short iBoundary) const {return boundary_container[iBoundary];}
 
 	protected:
     // Total number of nodes.
     unsigned long nNode;
+    // Total number of nodes in buffer layer.
+    unsigned long nNodeBuffer;
     // Number of boundary conditions in this zone.
     unsigned short nBoundary;
 
@@ -52,6 +58,14 @@ class CSolver {
     // Data of solution points in grid.
     // Dimension: [iVar][iNode].
     as3data1d<as3double> DataSolution;
+
+    // Data of auxiliary residual at points in grid.
+    // Dimension: [iVar][iNode].
+    as3data1d<as3double> DataResidualAux;
+
+    // Data of auxiliary solution points in grid.
+    // Dimension: [iVar][iNode].
+    as3data1d<as3double> DataSolutionAux;
 
 		// Boundary condition container.
 		as3data1d<CBoundary> boundary_container;

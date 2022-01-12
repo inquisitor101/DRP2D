@@ -23,29 +23,31 @@ class CInitial {
                                                                 as3double t) = 0;
 
     // Getter: returns betaPML.
-    as3double GetBetaPML(void)                       const {return betaPML;}
+    as3double GetBetaPML(void)                             const {return betaPML;}
     // Getter: returns kappax.
-    virtual as3double GetKappax(void)                const {return 0.0;}
+    virtual as3double GetKappax(void)                      const {return 0.0;}
     // Getter: returns kappat.
-    virtual as3double GetKappat(void)                const {return 0.0;}
+    virtual as3double GetKappat(void)                      const {return 0.0;}
     // Pure virtual getter: returns aInf. Must be implemented in a derived class.
-    virtual as3double GetReferenceSpeedOfSound(void) const = 0;
+    virtual as3double GetReferenceSpeedOfSound(void)       const = 0;
     // Pure virtual getter: returns V0. Must be implemented in a derived class.
-    virtual as3double GetVelocityTransverse(void)    const = 0;
+    virtual as3double GetVelocityTransverse(void)          const = 0;
     // Pure virtual getter: returns U0. Must be implemented in a derived class.
-    virtual as3double GetVelocityNormal(void)        const = 0;
+    virtual as3double GetVelocityNormal(void)              const = 0;
     // Pure virtual getter: returns Tinf. Must be implemented in a derived class.
-    virtual as3double GetTinf(void)                  const = 0;
+    virtual as3double GetTinf(void)                        const = 0;
     // Pure virtual getter: returns pInf. Must be implemented in a derived class.
-    virtual as3double GetPinf(void)                  const = 0;
+    virtual as3double GetPinf(void)                        const = 0;
     // Pure virtual getter: returns A0. Must be implemented in a derived class.
-    virtual as3double GetA0(void)                    const = 0;
+    virtual as3double GetA0(void)                          const = 0;
     // Pure virtual getter: returns Mach. Must be implemented in a derived class.
-    virtual as3double GetMach(void)                  const = 0;
+    virtual as3double GetMach(void)                        const = 0;
     // Pure virtual getter: returns t0. Must be implemented in a derived class.
-    virtual as3double Gett0(void)                    const = 0;
+    virtual as3double Gett0(void)                          const = 0;
     // Pure virtual getter: returns true/false. Must be implemented in a derived class.
-    virtual bool GetDimensionalProblem(void)         const = 0;
+    virtual bool GetDimensionalProblem(void)               const = 0;
+    // Pure virtual getter: returns Fxpseudo. Must be implemented in a derived class.
+    virtual const as3vector1d<as3double> GetFxpseudo(void) const = 0;
 
 	protected:
     // Dispersion-relaxation correction parameter. Used in PML formulation.
@@ -73,23 +75,25 @@ class CGaussianInitial : public CInitial {
 
 
     // Getter: returns aInf.
-    as3double GetReferenceSpeedOfSound(void) const final {return aInf;}
+    as3double GetReferenceSpeedOfSound(void)       const final {return aInf;}
     // Getter: returns V0.
-    as3double GetVelocityTransverse(void)    const final {return vInf;}
+    as3double GetVelocityTransverse(void)          const final {return vInf;}
     // Getter: returns U0.
-    as3double GetVelocityNormal(void)        const final {return uInf;}
+    as3double GetVelocityNormal(void)              const final {return uInf;}
     // Getter: returns Tinf.
-    as3double GetTinf(void)                  const final {return Tinf;}
+    as3double GetTinf(void)                        const final {return Tinf;}
     // Getter: returns pInf.
-    as3double GetPinf(void)                  const final {return pInf;}
+    as3double GetPinf(void)                        const final {return pInf;}
     // Getter: returns A0.
-    as3double GetA0(void)                    const final {return A0;}
+    as3double GetA0(void)                          const final {return A0;}
     // Getter: returns Mach.
-    as3double GetMach(void)                  const final {return Mach;}
+    as3double GetMach(void)                        const final {return Mach;}
     // Getter: returns t0. Not needed in this IC.
-    as3double Gett0(void)                    const final {return 0.0;}
+    as3double Gett0(void)                          const final {return 0.0;}
     // Getter: returns true/false.
-    bool GetDimensionalProblem(void)         const final {return true;}
+    bool GetDimensionalProblem(void)               const final {return true;}
+    // Getter: returns Fxpseudo.
+    const as3vector1d<as3double> GetFxpseudo(void) const final {return Fxpseudo;}
 
 	protected:
 
@@ -116,6 +120,8 @@ class CGaussianInitial : public CInitial {
     as3double Tinf;
 		as3double rhoInf;
     as3double aInf;
+    // Flux in x-dimension based on pseudo-mean flow.
+    as3vector1d<as3double> Fxpseudo;
 };
 
 
@@ -135,23 +141,25 @@ class CIsentropicVortexInitial : public CInitial {
                                                         as3double t) final;
 
     // Getter: returns aInf.
-    as3double GetReferenceSpeedOfSound(void) const final {return aInf;}
+    as3double GetReferenceSpeedOfSound(void)       const final {return aInf;}
     // Getter: returns V0.
-    as3double GetVelocityTransverse(void)    const final {return vInf;}
+    as3double GetVelocityTransverse(void)          const final {return vInf;}
     // Getter: returns U0.
-    as3double GetVelocityNormal(void)        const final {return uInf;}
+    as3double GetVelocityNormal(void)              const final {return uInf;}
     // Getter: returns Tinf.
-    as3double GetTinf(void)                  const final {return Tinf;}
+    as3double GetTinf(void)                        const final {return Tinf;}
     // Getter: returns pInf.
-    as3double GetPinf(void)                  const final {return pInf;}
+    as3double GetPinf(void)                        const final {return pInf;}
     // Getter: returns A0.
-    as3double GetA0(void)                    const final {return A0;}
+    as3double GetA0(void)                          const final {return A0;}
     // Getter: returns Mach.
-    as3double GetMach(void)                  const final {return Mach;}
+    as3double GetMach(void)                        const final {return Mach;}
     // Getter: returns t0. Not needed in this IC.
-    as3double Gett0(void)                    const final {return 0.0;}
+    as3double Gett0(void)                          const final {return 0.0;}
     // Getter: returns DimensionalProblem.
-    bool GetDimensionalProblem(void)         const final {return true;}
+    bool GetDimensionalProblem(void)               const final {return true;}
+    // Getter: returns Fxpseudo.
+    const as3vector1d<as3double> GetFxpseudo(void) const final {return Fxpseudo;}
 
 	protected:
 
@@ -180,4 +188,6 @@ class CIsentropicVortexInitial : public CInitial {
     as3double Tinf;
 		as3double rhoInf;
     as3double aInf;
+    // Flux in x-dimension based on pseudo-mean flow.
+    as3vector1d<as3double> Fxpseudo;
 };

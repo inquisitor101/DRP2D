@@ -43,6 +43,9 @@ class CTemporal {
 		// Total number of nodes.
 		unsigned long nNode;
 
+    // Total number of nodes in buffer layer.
+    unsigned long nNodeBuffer;
+
     // Total nodes in x-direction, including ghost nodes.
     unsigned long nxTotal;
     // Total nodes in y-direction, including ghost nodes.
@@ -118,9 +121,13 @@ class CLSRK4Temporal : public CTemporal {
 		as3vector1d<as3double> rk4b;
 		as3vector1d<as3double> rk4c;
 
-		// Tentative/intermediate solution stored.
+		// Tentative/intermediate physical solution stored.
 		// Dimension: [iVar][iNode].
 		as3data1d<as3double> DataSolutionTentative;
+
+    // Tentative/intermediate auxiliary solution stored.
+		// Dimension: [iVar][iNode].
+		as3data1d<as3double> DataSolutionTentativeAux;
 
     // Function that performs a single stage sweep of a LSRK4.
 		void UpdateTime(CConfig                *config_container,

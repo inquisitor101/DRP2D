@@ -24,8 +24,10 @@ class CSpatial {
                                  CGeometry              *geometry_container,
                                  CSpatial               *spatial_container,
                                  CInitial               *initial_container,
-                                 as3data1d<as3double>   &work_array,
-                                 as3data1d<as3double>   &residual,
+                                 as3data1d<as3double>   &sol,
+                                 as3data1d<as3double>   &aux,
+                                 as3data1d<as3double>   &res_sol,
+                                 as3data1d<as3double>   &res_aux,
                                  as3double               localTime,
                                  as3vector1d<as3double> &MonitoringData) = 0;
 
@@ -91,8 +93,10 @@ class CEESpatial : public CSpatial {
                          CGeometry              *geometry_container,
                          CSpatial               *spatial_container,
                          CInitial               *initial_container,
-                         as3data1d<as3double>   &work_array,
-                         as3data1d<as3double>   &residual,
+                         as3data1d<as3double>   &sol,
+                         as3data1d<as3double>   &aux,
+                         as3data1d<as3double>   &res_sol,
+                         as3data1d<as3double>   &res_aux,
                          as3double               localTime,
                          as3vector1d<as3double> &MonitoringData);
 

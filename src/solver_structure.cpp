@@ -15,9 +15,11 @@ CSolver::CSolver
 	*/
 {
   // Total number of nodes.
-  nNode     = geometry_container->GetnNode();
+  nNode       = geometry_container->GetnNode();
+  // Total number of nodes in buffer layer.
+  nNodeBuffer = geometry_container->GetnNodeBuffer();
   // Number of boundaries in this zone. Note, this is always fixed as 4.
-	nBoundary = nFace;
+	nBoundary   = nFace;
 
   // Initialize boundary data container.
   Boundary_Preprocessing(config_container,
@@ -123,7 +125,6 @@ CEESolver::CEESolver
   // Reserve memory for data.
   DataSolution.resize(nVar, nullptr);
   DataResidual.resize(nVar, nullptr);
-
   // Allocate in every variable.
   for(unsigned short iVar=0; iVar<nVar; iVar++){
 
@@ -135,6 +136,22 @@ CEESolver::CEESolver
     if( !DataSolution[iVar] || !DataResidual[iVar] )
       Terminate("CEESolver::CEESolver", __FILE__, __LINE__,
                 "Allocation failed for DataSolution or DataResidual.");
+  }
+
+  // Reserve memory for auxiliary residual.
+  DataSolutionAux.resize(nVar, nullptr);
+  DataResidualAux.resize(nVar, nullptr);
+  // Allocate in every variable.
+  for(unsigned short iVar=0; iVar<nVar; iVar++){
+
+    // Allocate actual memory.
+    DataSolutionAux[iVar] = new as3double[nNodeBuffer]();
+    DataResidualAux[iVar] = new as3double[nNodeBuffer]();
+
+    // Check if allocation failed.
+    if( !DataResidualAux[iVar] || !DataSolutionAux[iVar] )
+      Terminate("CEESolver::CEESolver", __FILE__, __LINE__,
+                "Allocation failed for DataResidualAux or DataSolutionAux.");
   }
 }
 
@@ -152,6 +169,12 @@ CEESolver::~CEESolver
 
   for(unsigned short i=0; i<DataResidual.size(); i++)
     if( DataResidual[i] ) delete [] DataResidual[i];
+
+  for(unsigned short i=0; i<DataSolutionAux.size(); i++)
+    if( DataSolutionAux[i] ) delete [] DataSolutionAux[i];
+
+  for(unsigned short i=0; i<DataResidualAux.size(); i++)
+    if( DataResidualAux[i] ) delete [] DataResidualAux[i];
 }
 
 

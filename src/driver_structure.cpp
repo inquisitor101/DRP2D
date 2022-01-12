@@ -124,16 +124,7 @@ CDriver::~CDriver
 	std::cout << "Done." << std::endl;
 
 	// Set all containers deleted to nullptr.
-	config_container    = nullptr;
-	geometry_container  = nullptr;
-	input_container     = nullptr;
-	output_container    = nullptr;
-	solver_container    = nullptr;
-	temporal_container  = nullptr;
-	iteration_container = nullptr;
-	spatial_container   = nullptr;
-	initial_container   = nullptr;
-  process_container   = nullptr;
+	SetContainers_Null();
 
 	std::cout << "Done." << std::endl;
 }
@@ -193,13 +184,13 @@ void CDriver::SetContainers_Null
 	// Containers initialized.
 	config_container    = nullptr;
 	geometry_container  = nullptr;
-	temporal_container  = nullptr;
 	input_container     = nullptr;
 	output_container    = nullptr;
-	solver_container    = nullptr;
+	temporal_container  = nullptr;
 	iteration_container = nullptr;
-	spatial_container   = nullptr;
+	solver_container    = nullptr;
 	initial_container   = nullptr;
+	spatial_container   = nullptr;
   process_container   = nullptr;
 }
 

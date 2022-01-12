@@ -25,6 +25,9 @@ CGeometry::CGeometry
 
   // Create the grid.
   GenerateGrid(nxNode, nyNode, nNode);
+
+  // Generate buffer layer.
+  GenerateBufferLayer(config_container);
 }
 
 
@@ -51,6 +54,71 @@ void CGeometry::ComputePointCellP1
 {
   // Total number of points needed to assemble an nPoly=1 cell grid.
   nPointCellP1 = (nxNode-1)*(nyNode-1)*N_POINTS_QUADRILATERAL;
+}
+
+
+void CGeometry::GenerateBufferLayer
+(
+ CConfig *config_container
+)
+ /*
+  * Function that generates a buffer layer.
+  */
+{
+  // Extract the starting location of the buffer layer in x-direction.
+  const as3double xi = config_container->GetxBufferInterface();
+  // Extract starting and ending location of the overall domain.
+  const as3double x0 = GridSize[0], x1 = GridSize[1];
+
+  // Consistency check.
+  if( (xi >= x1) || (xi <= x0) )
+    Terminate("CGeometry::GenerateBufferLayer", __FILE__, __LINE__,
+              "Buffer layer position must be inside of the domain dimensions.");
+
+  // Cast 1D array into 2D sub-arrays for readability, using the column-index.
+  // That is: xcoord[nyNode][nxNode]
+  // ... for efficiency (cpp row-major), loop over [nxNode] first.
+  const as3double (*xcoord)[nxNode] = (const as3double (*)[nxNode]) GridCoordinate[0];
+
+  // Loop over the grid and determine the i-direction buffer-layer indices.
+  for(unsigned long i=0; i<nxNode; i++) if( xcoord[0][i] > xi ) IBufferLayer.emplace_back(i);
+
+  // Number of nodes in buffer layer in x-direction.
+  nxNodeBuffer = IBufferLayer.size();
+  // Number of nodes in buffer layer in y-direction.
+  nyNodeBuffer = nyNode;
+  // Total number of nodes in the buffer layer.
+  nNodeBuffer  = nxNodeBuffer*nyNodeBuffer;
+
+  // Consistency check.
+  if( !IBufferLayer.size() )
+    Terminate("CGeometry::GenerateBufferLayer", __FILE__, __LINE__,
+              "No nodes exist in buffer layer, something is wrong.");
+
+  // Obtain damping function constant.
+  const as3double sigma = config_container->GetDampingConstant();
+  // Obtain damping function exponent.
+  const as3double alpha = config_container->GetDampingExponent();
+
+  // Reserve memory for the damping function along the x-direction.
+  DampingFunctionXDir.resize(nxNodeBuffer, 0.0);
+
+  // First half of the buffer layer.
+  unsigned long ib = nxNodeBuffer/2;
+
+  // Determine the inverse of the length of the first half of the buffer layer.
+  const as3double ovDx1 = 1.0/( xcoord[0][ IBufferLayer[ib-1] ] - xcoord[0][ IBufferLayer[0]  ] );
+  // Determine the inverse of the length of the second half of the buffer layer.
+  const as3double ovDx2 = 1.0/( xcoord[0][ IBufferLayer.back()] - xcoord[0][ IBufferLayer[ib] ] );
+
+  // Compute the damping function of the first half of the buffer layer.
+  for(unsigned long i=0; i<ib; i++)
+    DampingFunctionXDir[i] = sigma*pow( ovDx1*(xcoord[0][IBufferLayer[i]] - xcoord[0][IBufferLayer[0]]), alpha ) ;
+
+  // Compute the damping function of the second half of the buffer layer.
+  unsigned long k=1;
+  for(unsigned long i=ib; i<nxNodeBuffer; i++)
+    DampingFunctionXDir[nxNodeBuffer-k++] = sigma*pow( ovDx2*(xcoord[0][IBufferLayer[i]] - xcoord[0][IBufferLayer[ib]]), alpha ) ;
 }
 
 

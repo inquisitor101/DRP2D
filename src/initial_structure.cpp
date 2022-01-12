@@ -73,6 +73,20 @@ CGaussianInitial::CGaussianInitial
 
   // Initialize dispersion-relaxation correction.
   betaPML = uInf/( aInf*aInf - uInf*uInf );
+
+  // Abbreviation.
+  const as3double ovgm1   = 1.0/GAMMA_MINUS_ONE;
+  // Assemble free-stream conservative data.
+  const as3double rhouInf = rhoInf*uInf;
+  const as3double rhovInf = rhoInf*vInf;
+  const as3double ekInf   = 0.5*( uInf*uInf + vInf*vInf );
+  const as3double rhoeInf = ovgm1*pInf + rhoInf*ekInf;
+
+  // Assemble x-flux based on pseudo-mean flow.
+  Fxpseudo = {        rhouInf,
+               uInf*  rhouInf + pInf,
+               vInf*  rhouInf,
+               uInf*( rhoeInf + pInf ) };
 }
 
 
@@ -163,6 +177,20 @@ CIsentropicVortexInitial::CIsentropicVortexInitial
 
   // Initialize dispersion-relaxation correction.
   betaPML = uInf/( aInf*aInf - uInf*uInf );
+
+  // Abbreviation.
+  const as3double ovgm1   = 1.0/GAMMA_MINUS_ONE;
+  // Assemble free-stream conservative data.
+  const as3double rhouInf = rhoInf*uInf;
+  const as3double rhovInf = rhoInf*vInf;
+  const as3double ekInf   = 0.5*( uInf*uInf + vInf*vInf );
+  const as3double rhoeInf = ovgm1*pInf + rhoInf*ekInf;
+
+  // Assemble x-flux based on pseudo-mean flow.
+  Fxpseudo = {        rhouInf,
+               uInf*  rhouInf + pInf,
+               vInf*  rhouInf,
+               uInf*( rhoeInf + pInf ) };
 }
 
 
