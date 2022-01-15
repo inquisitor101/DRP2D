@@ -138,6 +138,8 @@ bool CConfig::ReadGridOptions
 	AddVectorOption(paramFile, "DOMAIN_BOUND", DomainBound, true);
   // Read buffer layer starting location in x-direction.
   AddScalarOption(paramFile, "BUFFER_INTERFACE_X", xBufferInterface, true);
+  // Read solution polynomial order, for a FEM discretization.
+  AddScalarOption(paramFile, "POLY_ORDER_SOL", nPoly, true);
 
   // Assign solver type. For now, use a EE only.
   TypeSolver = SOLVER_EE;

@@ -14,6 +14,8 @@ class CConfig {
 		// Destructor.
 		~CConfig(void);
 
+    // Getter: returns nPoly.
+    unsigned short GetnPoly(void)                              const {return nPoly;}
     // Getter: returns nxNode.
     unsigned long GetnxNode(void)                              const {return nxNode;}
     // Getter: returns nyNode.
@@ -124,6 +126,9 @@ class CConfig {
 		unsigned long nxNode;
 		// Number of physical nodes in y-direction.
 		unsigned long nyNode;
+
+    // Polynomial order, for an equivalent FEM discretization.
+    unsigned short nPoly;
 
     // Stencil size in backward-direction, w.r.t. grid orientation.
     unsigned short NStencil[nDim];

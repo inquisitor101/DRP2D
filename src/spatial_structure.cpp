@@ -203,7 +203,28 @@ CEESpatial::CEESpatial
 	* Constructor, used to initialize CEESpatial.
 	*/
 {
+  // Check if this is a dimensional problem.
+  if( initial_container->GetDimensionalProblem() ){
 
+    // Extract damping function.
+    auto& sigma = geometry_container->GetDampingFunctionXDir();
+
+    // Extract reference speed of sound.
+    const as3double ainf  = initial_container->GetReferenceSpeedOfSound();
+    // Extract grid resolution in x-direction.
+    const as3double dx    = geometry_container->GetGridResolution(0);
+
+    // Extract polynomial degree assumed.
+    const as3double nPoly = (as3double) config_container->GetnPoly();
+    // Determine equivalent element resolution in a FEM discretization.
+    const as3double hx = nPoly*dx;
+
+    // Dimensionalization factor.
+    const as3double aovdx = ainf/hx;
+
+    // Loop over the damping function and dimensionalize its values.
+    for( auto& sx : sigma ) sx *= aovdx;
+  }
 }
 
 
@@ -363,7 +384,10 @@ void CEESpatial::ComputeResidual
     // Loop over all nodes and variables and update both residuals.
     for(unsigned short iVar=0; iVar<nVar; iVar++){
       for(unsigned long j=J0; j<J1; j++){
-        for(unsigned long i : IBufferLayer){
+        for(unsigned long ii=0; ii<IBufferLayer.size(); ii++){
+
+          // Extract actual i-index.
+          const unsigned long i  = IBufferLayer[ii];
 
           // Equivalent 1D running node index in extended grid.
           const unsigned long ij = j*nxTotal + (i+NxStencil);

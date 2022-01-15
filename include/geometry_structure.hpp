@@ -30,7 +30,7 @@ class CGeometry {
     // Getter: returns IBufferLayer.
     const as3vector1d<unsigned long> &GetIBufferLayer(void)    const {return IBufferLayer;}
     // Getter: returns DampingFunctionXDir.
-    const as3vector1d<as3double> &GetDampingFunctionXDir(void) const {return DampingFunctionXDir;}
+    as3vector1d<as3double> &GetDampingFunctionXDir(void)             {return DampingFunctionXDir;}
 
 	protected:
 
