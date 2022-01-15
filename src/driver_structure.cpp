@@ -437,17 +437,17 @@ void CDriver::Temporal_Preprocessing
 			break;
 		}
 
-    // // Strong-stability-preserving 3-stage Runge-Kutta (explicit).
-		// case(TEMPORAL_SCHEME_SSPRK3):
-		// {
-    //   // Assign temporal container.
-		// 	temporal_container = new CSSPRK3Temporal(config_container,
-		// 																					 geometry_container,
-		// 																					 iteration_container,
-		// 																					 solver_container,
-		// 																					 spatial_container);
-		// 	break;
-		// }
+    // Strong-stability-preserving 3-stage Runge-Kutta (explicit).
+		case(TEMPORAL_SCHEME_SSPRK3):
+		{
+      // Assign temporal container.
+			temporal_container = new CSSPRK3Temporal(config_container,
+																							 geometry_container,
+																							 iteration_container,
+																							 solver_container,
+																							 spatial_container);
+			break;
+		}
 
     // Otherwise, exit immediately.
 		default:
